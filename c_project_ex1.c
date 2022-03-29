@@ -101,6 +101,7 @@ void* k_mean(int k, int max_iter, char *input_filename,char *output_filename)
         printf("Invalid Input!");
         exit;
     }   
+    fclose(output_filename);
     char more_than_epsilon = 1;
     double epsilon = 0.001;
     int i = 0;
