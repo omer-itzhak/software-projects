@@ -15,14 +15,15 @@ double** read_file(char *input_filename);
 double* sub_vector(double *old, double *new);
 double euclidean_norm(double* vector);
 int is_numeric(char *ch);
-void* k_mean(int k, int max_iter, char *input_filename,char *output_filename);
+int k_mean(int k, int max_iter, char *input_filename,char *output_filename);
 int invalid_input();
+int write_to_file(char *output_filename, double **centroids, int k);
 int size_vec;
 
 
 int main(int argc,char *argv[])
 {
-    // FILE* opf;
+/*     // FILE* opf;
     // int k, max_iter, idx_of_file;
     // char *input_filename, *output_filename;
     // // validity of input check:
@@ -68,21 +69,23 @@ int main(int argc,char *argv[])
     // {
     //     invalid_input();
     // }
-    // return k_mean(k,max_iter,input_filename,output_filename);
-    k_mean(3,100,"input_2.txt", "output_file.txt");
+    // return k_mean(k,max_iter,input_filename,output_filename); */
+    int r;
+    r = k_mean(3,100,"input_2.txt", "output_file.txt");
+    printf("%d",r);
+    return r;
 }
-void* k_mean(int k, int max_iter, char *input_filename,char *output_filename)
+int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
 {
-    int i,j,iteration=0,cluster_i = 0;
+    int i,iteration=0,cluster_i = 0;
     int *clusters_indices;
-    FILE *opf;
     char more_than_epsilon;
     double epsilon,min_euclidean_dist,euclidean_dist,norm,dist;
     double *data_point,*change_vector,*sub;
     double **data_points,**centroids,**new_centroids;
     double ***clusters;
     printf("%s","entered k_min");
-    // if (k <= 0 || max_iter <= 0)
+/*     // if (k <= 0 || max_iter <= 0)
     // {
     //     printf("Invalid Input!");
     //     exit(0);
@@ -94,7 +97,7 @@ void* k_mean(int k, int max_iter, char *input_filename,char *output_filename)
     //     exit(0);
     // }   
     // fclose(check);
-   // printf("%s","file_read");
+   // printf("%s","file_read"); */
     more_than_epsilon = 1;
     epsilon = 0.001;
     data_points = read_file(input_filename);
@@ -145,26 +148,27 @@ void* k_mean(int k, int max_iter, char *input_filename,char *output_filename)
             centroids = new_centroids;
         }
     }
-    // write to file:
-    opf = fopen(output_filename, "w");
-    assert(opf && "An Error Has Occurred");
-    //if (opf != NULL)
-    //{
-        for (j=0; j<k; j++)
-        {
-            for (i=0; i<size_vec; i++)
-                {
-                    fprintf(opf,"%.4f" , centroids[j][i]);        
-                    if (i != size_vec-1)
-                        {
-                            fprintf(opf,"%s",",");
-                        }
-                }
-            fprintf(opf,"\n");
-        }
-    fclose(opf);
-    //}
-    return centroids;
+    assert(write_to_file(output_filename, centroids, k) && "An Error Has Occurred");
+/*     // write to file:
+    // opf = fopen(output_filename, "w");
+    // assert(opf && "An Error Has Occurred");
+    // //if (opf != NULL)
+    // //{
+    //     for (j=0; j<k; j++)
+    //     {
+    //         for (i=0; i<size_vec; i++)
+    //             {
+    //                 fprintf(opf,"%.4f" , centroids[j][i]);        
+    //                 if (i != size_vec-1)
+    //                     {
+    //                         fprintf(opf,"%s",",");
+    //                     }
+    //             }
+    //         fprintf(opf,"\n");
+    //     }
+    // fclose(opf);
+    //} */
+    return 0;
 }
 double* avg(double **cluster)
 {
@@ -189,7 +193,7 @@ double** read_file(char *input_filename)
     int index=0, line=0,total_vec_number = 0;
     double a;
     char b;
-    //int i,q;
+    /* //int i,q; */
     double **data_points;
 
     /* count cordinate number in vector */
@@ -218,7 +222,7 @@ double** read_file(char *input_filename)
     {
         ipf = fopen(input_filename, "r");
         assert (ipf && "An Error Has Occurred");
-        // if (ipf !=NULL)
+        /* // if (ipf !=NULL) */
         for(line=0;line<total_vec_number;line++)
         { 
             double *vector = malloc(size_vec*sizeof(double));
@@ -234,14 +238,14 @@ double** read_file(char *input_filename)
     }            
     
     
-    // for(i = 0;i <10;i++ )
+/*     // for(i = 0;i <10;i++ )
     // {
 
     //     for(q=0;q<size_vec;q++)
     //     {
     //         printf("datapoints[%d][%d] is:%f\n" ,i,q,data_points[i][q]);
     //     }
-    // }
+    // } */
     fclose(ipf);    
     return data_points;
 }
@@ -279,6 +283,34 @@ int is_numeric(char *ch)
 int invalid_input()
 {
     printf("Invalid Input!");
-    exit(0);
+    exit(1);
+}
+
+int write_to_file(char *output_filename, double **centroids, int k)
+{
+    FILE* opf;
+    int j,i;
+    opf = fopen(output_filename, "w");
+    if (opf == NULL)
+    {
+        return 1;
+    }
+/*     // if (opf != NULL)
+     //{ */
+    for (j=0; j<k; j++)
+    {
+        for (i=0; i<size_vec; i++)
+        {
+            fprintf(opf,"%.4f" , centroids[j][i]);        
+            if (i != size_vec-1)
+            {
+                fprintf(opf,"%s",",");
+            }
+        }
+        fprintf(opf,"\n");
+    }
+    fclose(opf);
+    return 0;
+   /*  //}  */
 }
 
