@@ -4,10 +4,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-double* avg(double **cluster);
+double* avg(double **cluster, int cluster_i);
 double** read_file(char *input_filename);
 double* sub_vector(double *old, double *new);
-double* avg(double **cluster);
 double** read_file(char *input_filename);
 double* sub_vector(double *old, double *new);
 double* sub_vector(double *old, double *new);
@@ -18,7 +17,10 @@ int is_numeric(char *ch);
 int k_mean(int k, int max_iter, char *input_filename,char *output_filename);
 int invalid_input();
 int write_to_file(char *output_filename, double **centroids, int k);
-int size_vec;
+int an_error();
+int size_vec = 0,total_vec_number = 0;
+int *clusters_sizes;
+
 
 
 int main(int argc,char *argv[])
@@ -78,14 +80,13 @@ int main(int argc,char *argv[])
 int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
 {
     int i,iteration=0,cluster_i = 0;
-    int *clusters_indices;
     char more_than_epsilon;
     double epsilon,min_euclidean_dist,euclidean_dist,norm,dist;
     double *data_point,*change_vector,*sub;
     double **data_points,**centroids,**new_centroids;
     double ***clusters;
-    printf("%s","entered k_min");
-/*     // if (k <= 0 || max_iter <= 0)
+    printf("%s","entered k_min\n");
+ /*   // if (k <= 0 || max_iter <= 0)
     // {
     //     printf("Invalid Input!");
     //     exit(0);
@@ -100,23 +101,38 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
    // printf("%s","file_read"); */
     more_than_epsilon = 1;
     epsilon = 0.001;
+    printf("call to read file\n");
     data_points = read_file(input_filename);
+    printf("returned from read file\n");
     centroids = (double **)calloc(k,sizeof(double*));
+    assert(centroids && "An Error Has Occurred");
     for (i=0; i < k; i++)
     {
         centroids[i] = data_points[i];
     }
+    printf("line 111\n");
+    clusters = (double ***)calloc(k,sizeof(double**));
+    assert(clusters && "An Error Has Occurred");
+    for (i=0; i<k; i++)
+    {
+        double **new_cluster = (double **)malloc((total_vec_number - k + 1)*sizeof(double *)); /*largest cluster size can be num of datat points - (k-1)*/
+        assert(new_cluster && "An Error Has Occurred");
+        clusters[i] = new_cluster;
+        clusters_sizes = (int *)malloc(k*sizeof(int)); 
+        assert(clusters_sizes && "An Error Has Occurred");
+    }
     while (more_than_epsilon && iteration < max_iter)
     {
         iteration += 1;
-        clusters = (double ***)calloc(k,sizeof(double**));
-        clusters_indices = (int *)calloc(k,sizeof(int));
+        
+        printf("line 120\n");
         for (data_point = data_points[0]; data_point != NULL; data_point+=sizeof(double*)) /* foreach? */
         {
-            
             min_euclidean_dist = (double)(INT_MAX);
+            printf("line 123\n");
             for (i=0; i<k; i++)
             {
+                printf("line 126\n");
                 euclidean_dist = euclidean_norm(sub_vector(data_point, centroids[i]));
                 if (euclidean_dist < min_euclidean_dist)
                 {
@@ -124,13 +140,13 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
                     cluster_i = i;
                 }
             }
-            clusters[cluster_i][clusters_indices[cluster_i]] = data_point;
-            clusters_indices[cluster_i] += 1;
+            clusters[cluster_i][clusters_sizes[cluster_i]] = data_point;
+            clusters_sizes[cluster_i] += 1;
             new_centroids = (double **)calloc(k, sizeof(double*));
             assert(new_centroids && "An Error Has Occurred");
             for (i=0; i<k; i++)
             {
-                new_centroids[i] = avg(clusters[i]);
+                new_centroids[i] = avg(clusters[i], cluster_i);
             }
             change_vector = (double *)malloc(k*sizeof(double));
             assert(change_vector && "An Error Has Occurred");
@@ -170,27 +186,28 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
     //} */
     return 0;
 }
-double* avg(double **cluster)
+double* avg(double **cluster, int cluster_i)
 {
     int i, j, n;
     double temp;
     double *centroid;
-    n = sizeof(cluster[0]);
+    n = clusters_sizes[cluster_i];
     centroid = (double *)malloc(n*sizeof(double));
+    assert(centroid && "An Error Has Occurred");
     for (i=0; i<n;i++)
     {
         temp = 0;
-        for (j=0; j<(int)sizeof(cluster); j++) 
+        for (j=0; j < size_vec; j++) 
         {
             temp += cluster[j][i];
         }
-        centroid[i] = temp/sizeof(cluster);
+        centroid[i] = temp/clusters_sizes[cluster_i];
     }
     return centroid;
 }
 double** read_file(char *input_filename)
 {  
-    int index=0, line=0,total_vec_number = 0;
+    int index=0, line=0;
     double a;
     char b;
     /* //int i,q; */
@@ -285,7 +302,11 @@ int invalid_input()
     printf("Invalid Input!");
     exit(1);
 }
-
+int an_error()
+{
+    printf("An Error Has Occurred");
+    exit(1);
+}
 int write_to_file(char *output_filename, double **centroids, int k)
 {
     FILE* opf;
@@ -293,7 +314,7 @@ int write_to_file(char *output_filename, double **centroids, int k)
     opf = fopen(output_filename, "w");
     if (opf == NULL)
     {
-        return 1;
+        an_error();
     }
 /*     // if (opf != NULL)
      //{ */
@@ -301,12 +322,15 @@ int write_to_file(char *output_filename, double **centroids, int k)
     {
         for (i=0; i<size_vec; i++)
         {
-            fprintf(opf,"%.4f" , centroids[j][i]);        
+            printf("%.4f" , centroids[j][i]);
+            fprintf(opf,"%.4f" , centroids[j][i]);
             if (i != size_vec-1)
             {
+                printf("%s",",");
                 fprintf(opf,"%s",",");
             }
         }
+        printf("\n");
         fprintf(opf,"\n");
     }
     fclose(opf);
