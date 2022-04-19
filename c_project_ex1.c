@@ -152,7 +152,8 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
         }
 
         /* make change vector*/
-        
+        /* makes a sub vector of each two centroids and
+        the norm of this sub is the cordinate in change vector*/
         for (i = 0 ; i < k ; i++)
         {
             sub = sub_vector(centroids[i], new_centroids[i]);
@@ -165,6 +166,7 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
         {
             more_than_epsilon = 0;
         }
+
         temp_centroids = centroids;
         centroids = new_centroids;
         new_centroids = temp_centroids;
@@ -172,9 +174,18 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
         {
             free(new_centroids[g]);
         }
+
+    }
+    for (i=0;i<k;i++)
+    {
+        printf("clusters_sizes[%d] = %d\n",i,clusters_sizes[i]);
+        printf("cluster[%d]=\n",i);
+        for (g=0;g<clusters_sizes[i];g++)
+        {
+            print_vector(clusters[i][g]);
+        }
     }
     assert(write_to_file(output_filename, centroids, k) == 0 && "An Error Has Occurred");
-    free(data_point);
     free(change_vector);
     for (i = 0; i < total_vec_number ; i++)
     {
@@ -184,7 +195,6 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
     for (i = 0 ; i < k ; i++)
     {
         free(centroids[i]);
-        free(new_centroids[i]);
         free(clusters[i]);
     }
     free(centroids);
@@ -198,7 +208,7 @@ double* avg(double **cluster, int cluster_i)
     int i, j, n;
     double sum;
     double *centroid;
-    n = clusters_sizes[cluster_i];
+    n = clusters_sizes[cluster_i];/* maybe*/
     centroid = (double *)malloc(size_vec*sizeof(double));
     assert(centroid && "An Error Has Occurred");
     for (i = 0 ; i < size_vec ; i++)
@@ -263,8 +273,10 @@ double** read_file(char *input_filename)
             fgetc(ipf);
         }
         data_points[line] = vector;
+        printf("data_points[%d] = ",line);
+        print_vector(data_points[line]);
     }
-    fclose(ipf);    
+    fclose(ipf);  
     return data_points;
 }
 double* sub_vector(double *old, double *new)
