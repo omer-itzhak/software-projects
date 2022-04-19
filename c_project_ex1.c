@@ -18,7 +18,7 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename);
 int invalid_input();
 int write_to_file(char *output_filename, double **centroids, int k);
 int an_error();
-int size_vec = 0,total_vec_number = 0;
+int size_vec,total_vec_number;
 int *clusters_sizes;
 
 void print_vector(double *vector)
@@ -193,9 +193,6 @@ int k_mean(int k, int max_iter, char *input_filename,char *output_filename)
     free(clusters);
     return 0;
 }
-
-
-
 double* avg(double **cluster, int cluster_i)
 {
     int i, j, n;
@@ -222,9 +219,12 @@ double** read_file(char *input_filename)
     char b;
     double **data_points;
     FILE *ipf;
+
     /* count cordinate number in vector */
+
     ipf = fopen(input_filename, "r");
     assert (ipf != NULL && "An Error Has Occurred");
+    size_vec = 0;
     while ((fscanf(ipf,"%lf",&a) == 1)){
         b = fgetc(ipf);
         size_vec++;
@@ -235,8 +235,10 @@ double** read_file(char *input_filename)
     fclose(ipf);
 
     /* count total number of vectors */
+
     ipf = fopen(input_filename, "r");
     assert (ipf != NULL && "An Error Has Occurred");
+    total_vec_number = 0;
     for(b = fgetc(ipf) ; b != EOF ; b = fgetc(ipf)){
         if(b == '\n'){
             total_vec_number += 1;
@@ -262,17 +264,6 @@ double** read_file(char *input_filename)
         }
         data_points[line] = vector;
     }
-              
-    
-    
-/*     // for(i = 0;i <10;i++ )
-    // {
-
-    //     for(q=0;q<size_vec;q++)
-    //     {
-    //         printf("datapoints[%d][%d] is:%f\n" ,i,q,data_points[i][q]);
-    //     }
-    // } */
     fclose(ipf);    
     return data_points;
 }
@@ -339,4 +330,3 @@ int write_to_file(char *output_filename, double **centroids, int k)
     fclose(opf);
     return 0;
 }
-
