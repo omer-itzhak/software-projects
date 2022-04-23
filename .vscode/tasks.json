@@ -5,11 +5,17 @@
             "label": "C/C++: gcc.exe build active file",
             "command": "C:\\msys64\\mingw64\\bin\\gcc.exe",
             "args": [
+                "-ansi",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-pedantic-errors",
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
+                "-lm",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}/${fileBasenameNoExtension}.exe"
             ],
             "options": {
                 "cwd": "${fileDirname}"
