@@ -1,9 +1,0 @@
-void print_vector(double *vector)
-{
-    int g;
-    for (g=0; g<size_vec; g++)
-    {
-        printf("%Lf,", vector[g]);
-    }
-    printf("\n"); 
-}
