@@ -5,42 +5,27 @@
 #include <math.h>
 #define MAX_INT 2147483647
 
-void avg(double **cluster, int n, double *centroid);
-void sub_vector(double *old, double *new, double *sub);
-double euclidean_norm(double* vector);
+void avg(double **cluster, int n, double *centroid, int size_vec);
+void sub_vector(double *old, double *new, double *sub, int size_vec);
+double euclidean_norm(double* vector, int size_vec);
 int is_numeric(char *str);
 static double** k_mean(int k, int max_iter, double epsilon, double **data_points_c,double **initial_centroids_c,int total_vec_number,int size_vec);
-void copy_vector(double *copy_from, double *copy_to);
 double** create_mat(int vec_num, int vec_size);
 
 
-int size_vec,total_vec_number;
-double *sub;
-double **centroids;
-
-
-static double** k_mean(int k, int max_iter,double epsilon, double ** data_points_c, double **initial_centroids_c,int total_vec_number,int size_vec)
+static double** k_mean(int k, int max_iter,double epsilon, double ** data_points, double **centroids,int total_vec_number,int size_vec)
 {
-    int i,iteration=0,cluster_i = 0, idx, g;
-    char more_than_epsilon;
-    double min_euclidean_dist,euclidean_dist,norm,dist;
-    double *change_vector;
+    int i, iteration=0, cluster_i = 0, idx, g, more_than_epsilon = 1;
+    double min_euclidean_dist, euclidean_dist, norm,dist;
+    double *change_vector, *sub;
     double **temp_centroids, **new_centroids;
     double ***clusters;
     int *clusters_sizes;
-    more_than_epsilon = 1;
     new_centroids = create_mat(k , size_vec);
     if (!new_centroids)
     {
         return NULL;
     }
-/*     new_centroids = (double **)calloc(k,sizeof(double*));
-    assert(new_centroids && "An Error Has Occurred");
-    for (i = 0 ; i < k ; i++)
-    {
-        new_centroids[i] = (double *)calloc(size_vec, sizeof(double));
-        assert(new_centroids[i] && "An Error Has Occurred");
-    } */
     sub = (double *)calloc(size_vec, sizeof(double));
     if (!sub)
     {
@@ -90,34 +75,34 @@ static double** k_mean(int k, int max_iter,double epsilon, double ** data_points
             min_euclidean_dist = (double)(MAX_INT);
             for (i = 0 ; i < k ; i++)
             {
-                sub_vector(data_points_c[idx], centroids[i], sub);
-                euclidean_dist = euclidean_norm(sub);
+                sub_vector(data_points[idx], centroids[i], sub, size_vec);
+                euclidean_dist = euclidean_norm(sub, size_vec);
                 if (euclidean_dist < min_euclidean_dist)
                 {
                     min_euclidean_dist = euclidean_dist;
                     cluster_i = i;
                 }
             }
-            clusters[cluster_i][clusters_sizes[cluster_i]] = data_points_c[idx];
+            clusters[cluster_i][clusters_sizes[cluster_i]] = data_points[idx];
             clusters_sizes[cluster_i] += 1;
         }
 
         /* make centroids*/
         for (i = 0 ; i < k ; i++)
         {
-            avg(clusters[i], clusters_sizes[i], new_centroids[i]);
+            avg(clusters[i], clusters_sizes[i], new_centroids[i], size_vec);
         }
 
-        /* make change vector*/
-        /* makes a sub vector of each two centroids and
+        /* make change vector:
+        makes a sub vector of each two centroids and
         the norm of this sub is the cordinate in change vector*/
         for (i = 0 ; i < k ; i++)
         {
-            sub_vector(centroids[i], new_centroids[i], sub);
-            norm = euclidean_norm(sub);
+            sub_vector(centroids[i], new_centroids[i], sub, size_vec);
+            norm = euclidean_norm(sub, size_vec);
             change_vector[i] = norm;
         }
-        dist = euclidean_norm(change_vector);
+        dist = euclidean_norm(change_vector, size_vec);
         if (dist < epsilon)
         {
             more_than_epsilon = 0;
@@ -129,25 +114,17 @@ static double** k_mean(int k, int max_iter,double epsilon, double ** data_points
     }
     
     free(change_vector);
-/*     for (i = 0; i < total_vec_number ; i++)
-    {        
-        free(data_points_c[i]);
-    } */
-    free(data_points_c);
     for (i = 0 ; i < k ; i++)
     {
-        /* free(centroids[i]); */
-/*         free(new_centroids[i]); */
         free(clusters[i]);
     }
     free(centroids);
-/*     free(new_centroids); */
     free(clusters);
     free(sub);
     free(clusters_sizes);
     return new_centroids;
 }
-void avg(double **cluster, int n, double *centroid)
+void avg(double **cluster, int n, double *centroid, int size_vec)
 {
     int i, j;
     double sum;
@@ -162,7 +139,7 @@ void avg(double **cluster, int n, double *centroid)
     }
 }
 
-void sub_vector(double *old, double *new, double *sub)
+void sub_vector(double *old, double *new, double *sub, int size_vec)
 {
     int i;
     for(i = 0 ; i < size_vec ; i++)
@@ -171,7 +148,7 @@ void sub_vector(double *old, double *new, double *sub)
     }
 }
 
-double euclidean_norm(double* vector)
+double euclidean_norm(double* vector, int size_vec)
 {
     int i;
     double res = 0;
@@ -193,15 +170,6 @@ int is_numeric(char *str)
     return 1;
 }
 
-
-void copy_vector(double *copy_from, double *copy_to)
-{
-    int i;
-    for (i = 0; i< size_vec ; i++)
-    {
-        copy_to[i] = copy_from[i];
-    }
-}
 
 double** parse_py_table_to_C(PyObject *lst, int vec_num, int vec_size)
 {
@@ -272,13 +240,13 @@ static PyObject* fit(PyObject *self, PyObject *args)
         }
         PyList_Append(centroids_py, centroid_py);
     }
-
-    for (i = 0; i < total_vec_number ; i++)
+/* problem with this memory free loop! */
+/*     for (i = 0; i < total_vec_number ; i++)
     {        
         free(data_points_c[i]);
-    }
-    free(data_points_c);
-    free(centroids);
+    } */
+    free(data_points_c); 
+    free(centroids_c);
     return centroids_py;
 }
 

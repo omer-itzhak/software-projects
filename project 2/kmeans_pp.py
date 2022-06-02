@@ -20,48 +20,53 @@ def euclidean_norm(vector):
 
 def part_one(k):
     i = 1
-    idx_of_first_centroid = np.random.choice(len(merged_data), 1, replace = False)[0]
-    first_centroid = merged_data[idx_of_first_centroid]
-    centroids = [first_centroid]
-    weights = []
+    idx_of_first_centroid = int(np.random.choice(len(data_points), 1, replace = False)[0])
+#   first_centroid = merged_data[idx_of_first_centroid]
+#    centroids = [first_centroid]
     indices = [idx_of_first_centroid]
     while i != k:
         sum = 0
         min_dists = []
-        for data_point in merged_data:
+        weights = []
+        for data_point in data_points:
             min_dist = float("inf")
-            for centroid in centroids:
+            # for centroid in centroids:
+            for idx_of_centroid in indices:
+                centroid = data_points[idx_of_centroid]
                 dist = euclidean_norm(sub_vector(data_point, centroid))
                 if dist < min_dist:
                     min_dist = dist
             min_dists.append(min_dist)
             sum += min_dist
-        for i in range(merged_data.shape[1]):
-            weights.append(min_dists[i] / sum)
-        idx_of_centroid = np.random.choice(len(merged_data), 1, replace = False, p = weights)[0]
-        centroids.append(merged_data[idx_of_centroid])
-        indices.append(int(centroid.index))
+        # for idx_of_vector in range(merged_data.shape[1]):
+        for idx_of_vector in range(len(data_points)):
+            weights.append(min_dists[idx_of_vector] / sum)
+        #print(f"len(data_points) = {len(data_points)} len(weights)={len(weights)}\n")
+        idx_of_centroid = int(np.random.choice(len(data_points), 1, replace = False, p = weights)[0])
+        # centroids.append(merged_data[idx_of_centroid])
+        indices.append(idx_of_centroid)
         i += 1
+    centroids = [data_points[i] for i in indices]
     return (centroids, indices)
         
 
 def make_data_points_from_files(filename_1, filename_2):
     table_1 = pd.read_csv(filename_1, header=None, index_col = 0)
     table_2 = pd.read_csv(filename_2, header=None, index_col = 0)
-    global merged_data
+    # global merged_data
     merged_data = table_1.merge(table_2, how = 'inner', left_index = True, right_index = True)
     merged_data.index = merged_data.index.astype('int')
     return merged_data
 
 
 def main():
-    k, max_iter, epsilon,  data_points, initial_centroids, total_vec_number, size_vec, initial_centroids_indices = args_parsing()
+    k, max_iter, epsilon,  data_points_py, initial_centroids, total_vec_number, size_vec, initial_centroids_indices = args_parsing()
     initial_centroids_c = []
     for centroid in initial_centroids:
         for c in centroid:
             initial_centroids_c.append(c)
     data_points_c = []
-    for data_point in data_points:
+    for data_point in data_points_py:
         for d in data_point:
             data_points_c.append(d)
     centroids = mykmeanssp.fit(k, max_iter, epsilon, data_points_c,initial_centroids_c, total_vec_number, size_vec)
@@ -100,14 +105,16 @@ def args_parsing():
         print("6\n");
         invalid_input() """
     epsilon = float(epsilon)
-    if epsilon <= 0:
+    if epsilon < 0:
         invalid_input()
     filename_1 = args[idx_of_epsilon + 1]
     filename_2 = args[idx_of_epsilon + 2] 
-    data_points = make_data_points_from_files(filename_1, filename_2)
-    pd.DataFrame(data_points).to_numpy();
-    total_vec_number = data_points.shape[0]
-    vec_size = data_points.shape[1]
+    merged_data = make_data_points_from_files(filename_1, filename_2)
+    pd.DataFrame(merged_data).to_numpy();
+    total_vec_number = merged_data.shape[0]
+    vec_size = merged_data.shape[1]
+    global data_points
+    data_points = merged_data.values.tolist()
     if k > total_vec_number:
         invalid_input()
     initial_centroids, initial_centroids_indices = part_one(k)
