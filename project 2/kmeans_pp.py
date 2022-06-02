@@ -21,16 +21,13 @@ def euclidean_norm(vector):
 def part_one(k):
     i = 1
     idx_of_first_centroid = int(np.random.choice(len(data_points), 1, replace = False)[0])
-#   first_centroid = merged_data[idx_of_first_centroid]
-#    centroids = [first_centroid]
-    indices = [idx_of_first_centroid]
+    centroids_indices = [indices[idx_of_first_centroid]]
     while i != k:
         sum = 0
         min_dists = []
         weights = []
         for data_point in data_points:
             min_dist = float("inf")
-            # for centroid in centroids:
             for idx_of_centroid in indices:
                 centroid = data_points[idx_of_centroid]
                 dist = euclidean_norm(sub_vector(data_point, centroid))
@@ -38,16 +35,13 @@ def part_one(k):
                     min_dist = dist
             min_dists.append(min_dist)
             sum += min_dist
-        # for idx_of_vector in range(merged_data.shape[1]):
         for idx_of_vector in range(len(data_points)):
             weights.append(min_dists[idx_of_vector] / sum)
-        #print(f"len(data_points) = {len(data_points)} len(weights)={len(weights)}\n")
         idx_of_centroid = int(np.random.choice(len(data_points), 1, replace = False, p = weights)[0])
-        # centroids.append(merged_data[idx_of_centroid])
-        indices.append(idx_of_centroid)
+        centroids_indices.append(indices[idx_of_centroid])
         i += 1
-    centroids = [data_points[i] for i in indices]
-    return (centroids, indices)
+    centroids = [data_points[i] for i in centroids_indices]
+    return (centroids, centroids_indices)
         
 
 def make_data_points_from_files(filename_1, filename_2):
@@ -114,7 +108,9 @@ def args_parsing():
     total_vec_number = merged_data.shape[0]
     vec_size = merged_data.shape[1]
     global data_points
-    data_points = merged_data.values.tolist()
+    data_points = merged_data.values.to_list()
+    global indices
+    indices = merged_data.index.to_list()
     if k > total_vec_number:
         invalid_input()
     initial_centroids, initial_centroids_indices = part_one(k)
