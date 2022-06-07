@@ -189,24 +189,41 @@ double** parse_py_table_to_C(PyObject *lst, int vec_num, int vec_size)
     return data_points_c;
     
 }
-
 double** create_mat(int vec_num, int vec_size){
-    int i;
-    double *vec;
+    int i=0;
     double **mat;
-    vec = calloc(vec_num*vec_size, sizeof(double));
-    if (!vec){
-        return NULL;
-    }
     mat = calloc(vec_num, sizeof(double*));
-    if (!mat){
+    if (!mat)
+    {
         return NULL;
     }
-    for(i=0; i<vec_num; i++){
-        mat[i] = vec + i * vec_size;
+    for (; i < vec_num; i++)
+    {
+        mat[i] = calloc(vec_size, sizeof(double));
+        if (!mat[i])
+        {
+            return NULL;
+        }
     }
     return mat;
 }
+// double** create_mat(int vec_num, int vec_size){
+//     int i;
+//     double *vec;
+//     double **mat;
+//     vec = calloc(vec_num*vec_size, sizeof(double));
+//     if (!vec){
+//         return NULL;
+//     }
+//     mat = calloc(vec_num, sizeof(double*));
+//     if (!mat){
+//         return NULL;
+//     }
+//     for(i=0; i<vec_num; i++){
+//         mat[i] = vec + i * vec_size;
+//     }
+//     return mat;
+// }
 
 static PyObject* fit(PyObject *self, PyObject *args)
 {
@@ -240,11 +257,14 @@ static PyObject* fit(PyObject *self, PyObject *args)
         }
         PyList_Append(centroids_py, centroid_py);
     }
-/* problem with this memory free loop! */
-/*     for (i = 0; i < total_vec_number ; i++)
+
+    /*free vecs: */
+   /*  free(data_points_c[0]); */
+/* problem with this memory free loop? */
+    for (i = 0; i < total_vec_number ; i++)
     {        
         free(data_points_c[i]);
-    } */
+    }
     free(data_points_c); 
     free(centroids_c);
     return centroids_py;

@@ -4,52 +4,40 @@ import numpy as np
 import mykmeanssp
 
 np.random.seed(0)
-merged_data = np.array([[]])
-
-def sub_vector(old, new):
-    return [old[i] - new[i] for i in range(len(old))]
 
 
-def euclidean_norm(vector):
-    res = 0
-    for x in vector:
-        res += x ** 2
-    res = res ** 0.5
-    return res
-
+def euclidean_dist(v1 , v2):
+    return sum([((v1[i] - v2[i])**2) for i in range (len(v1))])
 
 def part_one(k):
-    i = 1
-    idx_of_first_centroid = int(np.random.choice(len(data_points), 1, replace = False)[0])
+    dists = pd.DataFrame(index=range(data_points.shape[0]),columns=range(k))
+    num_of_centroids = 1
+    idx_of_first_centroid = np.random.choice(data_points.shape[0])
     centroids_indices = [indices[idx_of_first_centroid]]
-    while i != k:
-        sum = 0
-        min_dists = []
+    centroids = [data_points[idx_of_first_centroid]]
+    while num_of_centroids != k:
         weights = []
-        for data_point in data_points:
-            min_dist = float("inf")
-            for idx_of_centroid in indices:
-                centroid = data_points[idx_of_centroid]
-                dist = euclidean_norm(sub_vector(data_point, centroid))
-                if dist < min_dist:
-                    min_dist = dist
-            min_dists.append(min_dist)
-            sum += min_dist
-        for idx_of_vector in range(len(data_points)):
-            weights.append(min_dists[idx_of_vector] / sum)
-        idx_of_centroid = int(np.random.choice(len(data_points), 1, replace = False, p = weights)[0])
+        centroid = centroids[-1]
+        for vector_idx in range(data_points.shape[0]):
+            data_point = data_points[vector_idx]
+            dists[num_of_centroids - 1][vector_idx] = euclidean_dist(data_point,centroid)
+            weights.append(dists.iloc[vector_idx].min())
+        sum_of_dists = sum(weights)
+        for i in range(data_points.shape[0]):
+            weights[i] = weights[i]/sum_of_dists
+        idx_of_centroid = np.random.choice(data_points.shape[0], p = weights) 
         centroids_indices.append(indices[idx_of_centroid])
-        i += 1
-    centroids = [data_points[i] for i in centroids_indices]
+        centroids.append(data_points[idx_of_centroid])
+        num_of_centroids += 1
     return (centroids, centroids_indices)
-        
+
 
 def make_data_points_from_files(filename_1, filename_2):
     table_1 = pd.read_csv(filename_1, header=None, index_col = 0)
     table_2 = pd.read_csv(filename_2, header=None, index_col = 0)
-    # global merged_data
     merged_data = table_1.merge(table_2, how = 'inner', left_index = True, right_index = True)
     merged_data.index = merged_data.index.astype('int')
+    merged_data = merged_data.sort_index()
     return merged_data
 
 
@@ -104,13 +92,13 @@ def args_parsing():
     filename_1 = args[idx_of_epsilon + 1]
     filename_2 = args[idx_of_epsilon + 2] 
     merged_data = make_data_points_from_files(filename_1, filename_2)
-    pd.DataFrame(merged_data).to_numpy();
+    # pd.DataFrame(merged_data).to_numpy();
     total_vec_number = merged_data.shape[0]
     vec_size = merged_data.shape[1]
     global data_points
-    data_points = merged_data.values.to_list()
+    data_points = merged_data.values
     global indices
-    indices = merged_data.index.to_list()
+    indices = merged_data.index
     if k > total_vec_number:
         invalid_input()
     initial_centroids, initial_centroids_indices = part_one(k)
