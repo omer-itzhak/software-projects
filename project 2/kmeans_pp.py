@@ -43,6 +43,8 @@ def make_data_points_from_files(filename_1, filename_2):
 
 def main():
     k, max_iter, epsilon,  data_points_py, initial_centroids, total_vec_number, size_vec, initial_centroids_indices = args_parsing()
+    if k > total_vec_number:
+        invalid_input()
     initial_centroids_c = []
     for centroid in initial_centroids:
         for c in centroid:
