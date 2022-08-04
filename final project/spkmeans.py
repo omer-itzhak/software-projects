@@ -5,7 +5,6 @@ from typing_extensions import dataclass_transform
 import pandas as pd
 import numpy as np
 np.random.seed(0)
-# how to connect when on a different file?
 class goal(Enum):
     spk = 1
     wam = 2
@@ -23,7 +22,6 @@ def args_parsing():
     k = int(k)
     g = argv[2]
     try:
-        #i want the enum to be defined on a different file
         g = goal[g]
     except:
         invalid_input()
