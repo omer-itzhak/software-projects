@@ -49,7 +49,7 @@ double euclidean_dist(double *v1, double *v2, int n)
 
 
 /* the weighted matrix will only be full at the bottom triangle (where i > j)*/
-double ** weighted_adjecency_matrix(int n, double **data_points)
+double ** weighted_adjecency_matrix(int n, double **data_points, int vec_size)
 {
     int i = 0, j;
     /* creating a lower triangle */
@@ -64,7 +64,7 @@ double ** weighted_adjecency_matrix(int n, double **data_points)
     {
         for(j = 0; j < i; j++)
         {
-            weighted_mat[i][j] = exp(-(euclidean_dist(data_points[i], data_points[j], n))/2);
+            weighted_mat[i][j] = exp(-(euclidean_dist(data_points[i], data_points[j], vec_size))/2);
         }
     }
     return weighted_mat;
@@ -82,11 +82,13 @@ double* diagonal_degree_matrix(double **weighted_mat, int n)
     {
         for (z = 0; z < n; z++)
         {
+            /* if i == z then weighted_mat[i][z] doesn't exist
+            and is considered to be 0 */
             if (i > z)
             {
                 ddm[i] += weighted_mat[i][z];
             }
-            else
+            else if (i != z)
             {
                 ddm[i] += weighted_mat[z][i];
             }
@@ -167,21 +169,11 @@ int is_diagonal(double **A, double **B, int n, double epsilon)
 
 double** eye(int n)
 {
-    int i = 0, j;
+    int i = 0;
     double **mat = make_mat(n, n);
-        for(; i < n; i++)
+    for(; i < n; i++)
     {
-        for(j = 0; j < n; j++)
-        {
-            if (i == j)
-            {
-                mat[i][j] = 1;
-            }
-            else
-            {
-                mat[i][j] = 0;
-            }
-        }   
+        mat[i][i] = 1; 
     }
     return eye;
 }
@@ -288,15 +280,15 @@ double square_off(double **mat, int n)
 } */
 
 
-/* with relation to assignment A' will be referred to as B 
-eigenvectors is etited inplace, res = matrix of eigenvectors*/
+/* with relation to the assignment A' will be referred to as B 
+eigenvectors is edited inplace, res = matrix of eigenvectors*/
 double*** jacobi_algorithm(double **sym, int n, double *eigenvalues)
 {
-    int i, j, iter = 0, r;
+    int i, j, iter = 0, r, cnt;
     int *piv;
     double c, t, s;
-    double *c_t;
-    double **B, **A, **product, **P;
+    double *c_t, *temp_eigenvalues;
+    double **B, **A, **product, **P, **res;
     double epsilon = 1.0 *pow(10, -5);
     P = eye(n);
     //P_T = make_mat(n, n);
@@ -341,14 +333,47 @@ double*** jacobi_algorithm(double **sym, int n, double *eigenvalues)
     free(P);
     free(B);
     //free(P_T);
+    temp_eigenvalues = (double *)calloc(n * sizeof(double));
+    res = (double **)calloc(n * sizeof(double *));
     for (i = 0; i < n; i++)
     {
-        eigenvalues[i] = A[i][i];
+        temp_eigenvalues[i] = A[i][i];
     }
-    return product;
+    free(A);
+    /* sort eigenvalues and corresponding eigen vectors */
+    for(i = 0; i < n; i++)
+    {
+        cnt = 0;
+        for(j = 0; j < n; j++)
+        {
+            if (temp_eigenvalues[i] <= temp_eigenvalues[j]) cnt++;
+        }
+        eigenvalues[cnt] = temp_eigenvalues[i];
+        res[cnt] = product[i];
+    }
+    free(product);
+    free(temp_eigenvalues);
+    return res;
 }
 
-/* didnt understand :( */
-double** eigengap_heuristic(double **l_norm ){}
+/* the assignment says to go up to n/2 nut sure i understood correctly */
+double** eigengap_heuristic(double *eigenvalues, int n)
+{
+    int i, k;
+    double max_arg = -INFINITY, deltha;
+    for(i = 0; i <= n/2; i++)
+    {
+        deltha = eigenvalues[i] - eigenvalues[i + 1]; 
+        if(deltha > max_arg)
+        {
+            max_arg = deltha;
+            k = i;
+        }
+    }
+    return k;
+}
+
+
+
 
 
