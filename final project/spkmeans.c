@@ -374,6 +374,246 @@ double** eigengap_heuristic(double *eigenvalues, int n)
 }
 
 
+void* invalid_input()
+{
+    printf("Invalid Input!");
+    exit(1);
+}
 
+/* reading input from CMD */
+int main(int argc, char *argv[])
+{
+    int i, n, vec_size, vec_num, j, g = -1;
+    char *goal;
+    FILE *file;
+    double **sym_mat, **data_points, **eigenvectors, **weighted_mat, 
+            **full_weighted_mat, *ddm, **full_ddm, **laplace;
+    double *eigenvalues;
+    int *size_num;
+    if(argc != 3)
+    {
+        invalid_input();
+    }
+    file = fopen(argv[2], "r");
+    if(file == NULL)
+    {
+        invalid_input();
+    }
+    goal = argv[1];
+    if(strcmp(goal, "jacobi"))
+    {
+        n = read_sym_mat(file, sym_mat);
+        eigenvalues = (double*)malloc(n, sizeof(double));
+        assert(eigenvalues && "An Error Has Accured");
+        eigenvectors = jacobi_algorithm(sym_mat, n, eigenvalues);
+        print_vec_row(eigenvalues, n);
+        print_mat_cols(eigenvectors, n, n);
+        for(i = 0; i < n; i++)
+        {
+            free(sym_mat[i]);
+        }
+        free(sym_mat);
+        free(eigenvalues);
+        free(eigenvectors);
+    }
+    else
+    {
+        if(strcmp(goal, "wam") == 0) g = 0;
+        else if(strcmp(goal, "ddg") == 0) g = 1;
+        else if(strcmp(goal, "lnorm") == 0) g = 2;
+        else invalid_input();
+        size_num = read_data_points(file, data_points);
+        vec_size, vec_num = size_num[0], size_num[1];
+        weighted_mat = weighted_adjecency_matrix(vec_num, data_points, vec_size);
+        if(g == 0)
+        /* goal is wam */
+        {
+            full_weighted_mat = make_mat(vec_num, vec_num);
+                for (i = 0; i < n; i++)
+                {
+                    full_weighted_mat[i][i] = 0;
+                    for (j = 0; j < n; j++)
+                    {
+                        /* if i == j then weighted_mat[i][j] doesn't exist
+                        and is considered to be 0 */
+                        if (i > j)
+                        {
+                            full_weighted_mat[i][j] = weighted_mat[i][j];
+                        }
+                        else if (i != j)
+                        {
+                            full_weighted_mat[i][j] = weighted_mat[j][i];
+                        }
+                    }
+                }
+            print_mat_rows(full_weighted_mat, n, n);
+            free(full_weighted_mat);
+        }
+        else
+        /* goal is ddg or lnorm */
+        {
+            ddm = diagonal_degree_matrix(weighted_mat, vec_num);
+            if(g == 1)
+            /* goal is ddg */
+            {
+                full_ddm = (double**)calloc(vec_num, sizeof(double*));
+                for(i = 0; i < n; i++) 
+                {
+                    full_ddm[i][i] = ddm[i];
+                }
+                print_mat_rows(full_ddm, vec_num, vec_num);
+                free(full_ddm);
+            }
+            else
+            /* goal is lnorm */
+            {
+                laplace = normalized_graph_laplacian(ddm, weighted_mat, vec_num);
+                print_mat_rows(laplace, vec_num, vec_num);
+                free(laplace);
+            }
+            free(ddm);
+        }
+        free(weighted_mat);
+        for(i = 0; i < vec_num; i++)
+        {
+            free(data_points[i]);
+        }
+        free(data_points);
+    }
+    return 0;
+}
+
+/* res = [vec_size, vec_num] */
+int* read_data_points(FILE* file, double** data_points)
+{
+    char a;
+    double num;
+    int i = 0, vec_size = 0, vec_num = 0, size_of_data_points = 1024;
+    double *vec;
+    int *res = (int*)malloc(2, sizeof(int));
+    data_points = (double**)malloc(size_of_data_points, sizeof(double*));
+    assert(data_points && "An Error Has Accured");
+    vec = (double*)malloc(size_of_data_points, sizeof(double));
+    assert(vec && "An Error Has Accured");
+    while(fscanf(file, "%lf", num) && fgetc(file, &a))
+    {
+        if(vec_num > 0)
+        {
+            if(vec_num > size_of_data_points)
+            {
+                data_points = (double**)realloc(data_points, 2 * size_of_data_points * sizeof(double*));
+                size_of_data_points *= 2;
+            }
+            if(i == 0)
+            {
+                data_points[vec_num] = (double*)malloc(vec_size * sizeof(double));
+            }
+            data_points[vec_num][i++] = num;
+            if(!a)
+            {
+                i = 0;
+                vec_num++;
+            }
+        }
+        /* this part is only for the first vector */
+        else
+        {
+            vec[vec_size] = num;
+            if(a)
+            {
+                vec_size++;
+            }
+            else
+            {
+                vec = (double*)realloc(vec, vec_size * sizeof(double));
+                data_points[0] = vec;
+                vec_num = 1;
+            }
+        }
+    }
+    fclose(file);
+    data_points = (double**)realloc(data_points, vec_num * sizeof(double*));
+    res[0] = vec_size;
+    res[1] = vec_num;
+    return res;
+}
+
+
+/* res = n */
+double** read_sym_mat(FILE* file, double** sym_mat)
+{
+    int n = 0, row = 0, col, size_of_mat = 1024;
+    double num;
+    double *vec;
+    char a;
+    sym_mat = (double**)malloc(size_of_mat, sizeof(double*));
+    assert(sym_mat && "An Error Has Accured");
+    vec = (double*)malloc(size_of_mat, sizeof(double));
+    assert(vec && "An Error Has Accured");
+    while(fscanf(file, "%lf", num) && fgetc(file, &a) && !row)
+    {
+        if(n > size_of_mat)
+        {
+            vec = (double*)realloc(vec, size_of_mat * 2 * sizeof(double));
+            assert(vec && "An Error Has Accured");
+            size_of_mat *= 2;
+        }
+        vec[n] = num;
+        if(a) n++;
+        else row = 1;
+
+    }
+    sym_mat[0] = (double*)realloc(vec, n * sizeof(double));
+    assert(sym_mat[0] && "An Error Has Accured");
+    sym_mat = (double**)realloc(sym_mat, n * sizeof(double*));
+    assert(sym_mat && "An Error Has Accured");
+    for(; row < n; row++)
+    {
+        sym_mat[row] = (double*)malloc(n , sizeof(double));
+        assert(sym_mat && "An Error Has Accured");
+        for(col = 0; col < n; col++)
+        {
+            sym_mat[row][col] = fscanf(file, "%lf");
+            fgetc(file);
+        }
+    }    
+    fclose(file);
+    return n;
+}
+
+
+void* print_vec_row(double *vec, int n)
+{
+    int i = 0;
+    for(; i < n - 1; i++)
+    {
+        printf("%lf,", vec[i]);
+    }
+    printf("%lf\n", vec[n - 1]);
+}
+
+
+print_mat_rows(double **mat, int n, int m)
+{
+    int i = 0;
+    for(; i < n; i++)
+    {
+        print_vec_row(mat[i], m);
+    }
+}
+
+
+print_mat_cols(double **mat, int n, int m)
+{
+    int i = 0, j;
+    for(; i < n; i++)
+    {
+        for(j = 0; j < m; j++)
+        {
+            printf("%lf ", mat[j][i]);
+        }
+        printf("\n");
+    }
+}
 
 
