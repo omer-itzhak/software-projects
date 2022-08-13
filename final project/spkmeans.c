@@ -684,7 +684,7 @@ static double** k_mean(int k, double **data_points, double **centroids,
             change_vector[i] = norm;
         }
         dist = euclidean_dist(change_vector, zero, vec_size);
-        if (dist < 0.001)
+        if (dist < 0.0)
         {
             more_than_epsilon = 0;
         }
