@@ -69,12 +69,15 @@ def main():
     #unfinished - thought maybe i should start the C part and then continue here
     k, goal, filename = args_parsing()
     if k == 0:
+        #TODO:
         k = eigengap_heuristic()
     match goal:
         case 'spk':
             sym_mat = pd.read_csv(filename)
+            #TODO: check if k > n
         case 'wam':    
             data_points = pd.read_csv(filename)
+            #TODO: check if k > n
 
 if __name__ == '__main__':
     main()

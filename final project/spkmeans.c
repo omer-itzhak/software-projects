@@ -17,6 +17,15 @@ double* obtain_c_t(double **sym_mat, int i, int j);
 double square_off(double **mat, int n);
 double*** jacobi_algorithm(double **sym, int n, double *eigenvalues);
 double** eigengap_heuristic(double **l_norm );
+void* invalid_input();
+int* read_data_points(FILE* file, double** data_points);
+double** read_sym_mat(FILE* file, double** sym_mat);
+void* print_vec_row(double *vec, int n);
+void* print_mat_rows(double **mat, int n, int m);
+void* print_mat_cols(double **mat, int n, int m);
+static double** k_mean(int k, double **data_points, double **centroids,
+                        int vec_num,int vec_size);                       
+void avg(double **cluster, int n, double *centroid, int vec_size);
 /*  */
 
 
@@ -488,22 +497,17 @@ int* read_data_points(FILE* file, double** data_points)
 {
     char a;
     double num;
-    int i = 0, vec_size = 0, vec_num = 0, size_of_data_points = 1024;
+    int i = 0, vec_size = 0, vec_num = 0;
     double *vec;
     int *res = (int*)malloc(2, sizeof(int));
-    data_points = (double**)malloc(size_of_data_points, sizeof(double*));
+    data_points = (double**)malloc(1000, sizeof(double*));
     assert(data_points && "An Error Has Accured");
-    vec = (double*)malloc(size_of_data_points, sizeof(double));
+    vec = (double*)malloc(10, sizeof(double));
     assert(vec && "An Error Has Accured");
     while(fscanf(file, "%lf", num) && fgetc(file, &a))
     {
         if(vec_num > 0)
         {
-            if(vec_num > size_of_data_points)
-            {
-                data_points = (double**)realloc(data_points, 2 * size_of_data_points * sizeof(double*));
-                size_of_data_points *= 2;
-            }
             if(i == 0)
             {
                 data_points[vec_num] = (double*)malloc(vec_size * sizeof(double));
@@ -587,13 +591,13 @@ void* print_vec_row(double *vec, int n)
     int i = 0;
     for(; i < n - 1; i++)
     {
-        printf("%lf,", vec[i]);
+        printf("%.4lf,", vec[i]);
     }
-    printf("%lf\n", vec[n - 1]);
+    printf("%.4lf\n", vec[n - 1]);
 }
 
 
-print_mat_rows(double **mat, int n, int m)
+void* print_mat_rows(double **mat, int n, int m)
 {
     int i = 0;
     for(; i < n; i++)
@@ -603,16 +607,118 @@ print_mat_rows(double **mat, int n, int m)
 }
 
 
-print_mat_cols(double **mat, int n, int m)
+void* print_mat_cols(double **mat, int n, int m)
 {
     int i = 0, j;
     for(; i < n; i++)
     {
         for(j = 0; j < m; j++)
         {
-            printf("%lf ", mat[j][i]);
+            printf("%.4lf ", mat[j][i]);
         }
         printf("\n");
+    }
+}
+
+
+static double** k_mean(int k, double **data_points, double **centroids,
+                        int vec_num,int vec_size)
+{
+    int i, iteration=0, cluster_i = 0, idx, g, more_than_epsilon = 1;
+    double min_euclidist, euclidist, norm,dist;
+    double *change_vector, *sub, *zero;
+    double **temp_centroids, **new_centroids;
+    double ***clusters;
+    int *clusters_sizes;
+    new_centroids = make_mat(k , vec_size);
+    assert(new_centroids && "An Error Has Accured");
+    clusters = (double ***)malloc(k * sizeof(double**));
+    assert(clusters && "An Error Has Accured");
+    clusters_sizes = (int *)calloc(k, sizeof(int));
+    assert(clusters_sizes && "An Error Has Accured");
+    zero = (double*)calloc(vec_size, sizeof(double));
+    assert(zero && "An Error Has Accured");
+    for (i = 0 ; i < k ; i++)
+    {
+        clusters[i] = (double **)malloc((total_vec_number - k + 1) * sizeof(double *)); 
+        /*largest cluster size can be num of data points - (k-1)*/
+        assert(clusters[i] && "An Error Has Accured");
+    }
+    change_vector = (double *)malloc(k * sizeof(double));
+    assert(change_vector && "An Error Has Accured");
+    while (more_than_epsilon && iteration < 300)
+    {
+        iteration++;
+        /* set cluster sizes to 0*/
+        for (g = 0; g < k ; g++)
+        {
+            clusters_sizes[g] = 0;
+        }
+        /* make clusters */
+        for (idx = 0 ; idx < vec_num ; idx++)
+        {
+            min_euclidean_dist = (double)(MAX_INT);
+            for (i = 0 ; i < k ; i++)
+            {
+                euclidist = euclidean_dist(data_points[idx], centroids[i], size_vec);
+                if (euclidean_dist < min_euclidean_dist)
+                {
+                    min_euclidist = euclidist;
+                    cluster_i = i;
+                }
+            }
+            clusters[cluster_i][clusters_sizes[cluster_i]] = data_points[idx];
+            clusters_sizes[cluster_i] += 1;
+        }
+        /* make centroids*/
+        for (i = 0 ; i < k ; i++)
+        {
+            avg(clusters[i], clusters_sizes[i], new_centroids[i], size_vec);
+        }
+        /* make change vector:
+        makes a sub vector of each two centroids and
+        the norm of this sub is the cordinate in change vector*/
+        for (i = 0 ; i < k ; i++)
+        {
+            norm = euclidist(centroids[i], new_centroids[i], vec_size);
+            change_vector[i] = norm;
+        }
+        dist = euclidean_dist(change_vector, zero, vec_size);
+        if (dist < 0.001)
+        {
+            more_than_epsilon = 0;
+        }
+
+        temp_centroids = centroids;
+        centroids = new_centroids;
+        new_centroids = temp_centroids;
+    }
+    
+    free(change_vector);
+    for (i = 0 ; i < k ; i++)
+    {
+        free(clusters[i]);
+    }
+    free(centroids);
+    free(clusters);
+    free(sub);
+    free(clusters_sizes);
+    return new_centroids;
+}
+
+
+void avg(double **cluster, int n, double *centroid, int vec_size)
+{
+    int i, j;
+    double sum;
+    for (i = 0 ; i < vec_size ; i++)
+    {
+        sum = 0;
+        for (j = 0; j < n; j++) 
+        {
+            sum += cluster[j][i];
+        }
+        centroid[i] = sum/n;
     }
 }
 
