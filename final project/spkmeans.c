@@ -16,7 +16,6 @@ int* pivot(double **sym_mat, int n);
 double* obtain_c_t(double **sym_mat, int i, int j);
 double square_off(double **mat, int n);
 double*** jacobi_algorithm(double **sym, int n, double *eigenvalues);
-double** eigengap_heuristic(double **l_norm );
 void* invalid_input();
 int* read_data_points(FILE* file, double** data_points);
 double** read_sym_mat(FILE* file, double** sym_mat);
@@ -26,6 +25,8 @@ void* print_mat_cols(double **mat, int n, int m);
 static double** k_mean(int k, double **data_points, double **centroids,
                         int vec_num,int vec_size);                       
 void avg(double **cluster, int n, double *centroid, int vec_size);
+int eigengap_heuristic(double *eigenvalues, int n);
+double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size);
 /*  */
 
 
@@ -366,7 +367,7 @@ double*** jacobi_algorithm(double **sym, int n, double *eigenvalues)
 }
 
 /* the assignment says to go up to n/2 nut sure i understood correctly */
-double** eigengap_heuristic(double *eigenvalues, int n)
+int eigengap_heuristic(double *eigenvalues, int n)
 {
     int i, k;
     double max_arg = -INFINITY, deltha;
@@ -389,108 +390,6 @@ void* invalid_input()
     exit(1);
 }
 
-/* reading input from CMD */
-int main(int argc, char *argv[])
-{
-    int i, n, vec_size, vec_num, j, g = -1;
-    char *goal;
-    FILE *file;
-    double **sym_mat, **data_points, **eigenvectors, **weighted_mat, 
-            **full_weighted_mat, *ddm, **full_ddm, **laplace;
-    double *eigenvalues;
-    int *size_num;
-    if(argc != 3)
-    {
-        invalid_input();
-    }
-    file = fopen(argv[2], "r");
-    if(file == NULL)
-    {
-        invalid_input();
-    }
-    goal = argv[1];
-    if(strcmp(goal, "jacobi"))
-    {
-        n = read_sym_mat(file, sym_mat);
-        eigenvalues = (double*)malloc(n, sizeof(double));
-        assert(eigenvalues && "An Error Has Accured");
-        eigenvectors = jacobi_algorithm(sym_mat, n, eigenvalues);
-        print_vec_row(eigenvalues, n);
-        print_mat_cols(eigenvectors, n, n);
-        for(i = 0; i < n; i++)
-        {
-            free(sym_mat[i]);
-        }
-        free(sym_mat);
-        free(eigenvalues);
-        free(eigenvectors);
-    }
-    else
-    {
-        if(strcmp(goal, "wam") == 0) g = 0;
-        else if(strcmp(goal, "ddg") == 0) g = 1;
-        else if(strcmp(goal, "lnorm") == 0) g = 2;
-        else invalid_input();
-        size_num = read_data_points(file, data_points);
-        vec_size, vec_num = size_num[0], size_num[1];
-        weighted_mat = weighted_adjecency_matrix(vec_num, data_points, vec_size);
-        if(g == 0)
-        /* goal is wam */
-        {
-            full_weighted_mat = make_mat(vec_num, vec_num);
-                for (i = 0; i < n; i++)
-                {
-                    full_weighted_mat[i][i] = 0;
-                    for (j = 0; j < n; j++)
-                    {
-                        /* if i == j then weighted_mat[i][j] doesn't exist
-                        and is considered to be 0 */
-                        if (i > j)
-                        {
-                            full_weighted_mat[i][j] = weighted_mat[i][j];
-                        }
-                        else if (i != j)
-                        {
-                            full_weighted_mat[i][j] = weighted_mat[j][i];
-                        }
-                    }
-                }
-            print_mat_rows(full_weighted_mat, n, n);
-            free(full_weighted_mat);
-        }
-        else
-        /* goal is ddg or lnorm */
-        {
-            ddm = diagonal_degree_matrix(weighted_mat, vec_num);
-            if(g == 1)
-            /* goal is ddg */
-            {
-                full_ddm = (double**)calloc(vec_num, sizeof(double*));
-                for(i = 0; i < n; i++) 
-                {
-                    full_ddm[i][i] = ddm[i];
-                }
-                print_mat_rows(full_ddm, vec_num, vec_num);
-                free(full_ddm);
-            }
-            else
-            /* goal is lnorm */
-            {
-                laplace = normalized_graph_laplacian(ddm, weighted_mat, vec_num);
-                print_mat_rows(laplace, vec_num, vec_num);
-                free(laplace);
-            }
-            free(ddm);
-        }
-        free(weighted_mat);
-        for(i = 0; i < vec_num; i++)
-        {
-            free(data_points[i]);
-        }
-        free(data_points);
-    }
-    return 0;
-}
 
 /* res = [vec_size, vec_num] */
 int* read_data_points(FILE* file, double** data_points)
@@ -722,4 +621,170 @@ void avg(double **cluster, int n, double *centroid, int vec_size)
     }
 }
 
+
+double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size)
+{
+    int i, n, vec_size, vec_num, j;
+    double **sym_mat, **data_points, **eigenvectors, **weighted_mat, 
+            **full_weighted_mat, *ddm, **full_ddm, **laplace, **res = NULL, **U, **T;
+    double *eigenvalues, *norm_of_rows;
+    if(goal == 5)
+    /* goal is jacobi */
+    {
+        eigenvalues = (double*)malloc(n, sizeof(double));
+        assert(eigenvalues && "An Error Has Accured");
+        eigenvectors = jacobi_algorithm(sym_mat, n, eigenvalues);
+        print_vec_row(eigenvalues, n);
+        print_mat_cols(eigenvectors, n, n);
+        for(i = 0; i < n; i++)
+        {
+            free(sym_mat[i]);
+        }
+        free(sym_mat);
+        free(eigenvalues);
+        free(eigenvectors);
+    }
+    else
+    {
+
+        weighted_mat = weighted_adjecency_matrix(vec_num, data_points, vec_size);
+        if(goal == 2)
+        /* goal is wam */
+        {
+            full_weighted_mat = make_mat(vec_num, vec_num);
+                for (i = 0; i < n; i++)
+                {
+                    full_weighted_mat[i][i] = 0;
+                    for (j = 0; j < n; j++)
+                    {
+                        /* if i == j then weighted_mat[i][j] doesn't exist
+                        and is considered to be 0 */
+                        if (i > j)
+                        {
+                            full_weighted_mat[i][j] = weighted_mat[i][j];
+                        }
+                        else if (i != j)
+                        {
+                            full_weighted_mat[i][j] = weighted_mat[j][i];
+                        }
+                    }
+                }
+            print_mat_rows(full_weighted_mat, n, n);
+            free(full_weighted_mat);
+        }
+        else
+        /* goal is ddg or lnorm */
+        {
+            ddm = diagonal_degree_matrix(weighted_mat, vec_num);
+            if(goal == 3)
+            /* goal is ddg */
+            {
+                full_ddm = (double**)calloc(vec_num, sizeof(double*));
+                for(i = 0; i < n; i++) 
+                {
+                    full_ddm[i][i] = ddm[i];
+                }
+                print_mat_rows(full_ddm, vec_num, vec_num);
+                free(full_ddm);
+            }
+            else 
+            /* goal is lnorm or spk */
+            {
+                laplace = normalized_graph_laplacian(ddm, weighted_mat, vec_num);
+                if(goal == 4)
+                /* goal is lnorm */
+                {
+                    print_mat_rows(laplace, vec_num, vec_num);
+                }
+                else
+                /* goal is spk */
+                {
+                    eigenvalues = (double*)malloc(vec_num, sizeof(double));
+                    assert(eigenvalues && "An Error Has Accured");
+                    eigenvectors = jacobi_algorithm(laplace, vec_num, eigenvalues);
+                    k = eigengap_heuristic(eigenvalues, vec_num);
+                    U = (double**)malloc(k * sizeof(double*));
+                    assert(U && "An Error Has Accured");
+                    for(i = 0; i < k; i++)
+                    {
+                        U[i] = eigenvectors[i];
+                    }
+                    T = make_mat(vec_num, k);
+                    norm_of_rows = (double*)calloc(vec_num, sizeof(double));
+                    assert(norm_of_rows && "An Error Has Accured");
+                    for(i = 0; i < vec_num; i++)
+                    {
+                        for(j = 0; j < k ; j++)
+                        {
+                            norm_of_rows[i] += pow(U[i][j], 2);
+                        }
+                        norm_of_rows[i] = pow(norm_of_rows[i], 0.5);
+                    }
+                    for(i = 0; i < vec_num; i++)
+                    {
+                        for(j = 0; j < k ; j++)
+                        {
+                            T[i][j] = U[i][j]/norm_of_rows[i];
+                        }
+                    }
+                    free(norm_of_rows);
+                    free(U);
+                    free(eigenvalues);
+                    free(eigenvectors);
+                    res = T;
+                }
+                free(laplace);
+            }
+            free(ddm);
+        }
+        free(weighted_mat);
+        for(i = 0; i < vec_num; i++)
+        {
+            free(data_points[i]);
+        }
+        free(data_points);
+    }
+    return res;
+}
+
+
+/* reading input from CMD */
+int main(int argc, char *argv[])
+{
+    int i, n, vec_size, vec_num, j, g = -1;
+    char *goal;
+    FILE *file;
+    double **matrix, **eigenvectors, **weighted_mat, 
+            **full_weighted_mat, *ddm, **full_ddm, **laplace;
+    double *eigenvalues;
+    int *size_num;
+    if(argc != 3)
+    {
+        invalid_input();
+    }
+    file = fopen(argv[2], "r");
+    if(file == NULL)
+    {
+        invalid_input();
+    }
+    goal = argv[1];
+    
+    if(strcmp(goal, "wam") == 0) g = 2;
+    else
+    {
+        size_num = read_data_points(file, matrix);
+        vec_size, vec_num = size_num[0], size_num[1];
+        free(size_num);
+        if(strcmp(goal, "ddg") == 0) g = 3;
+        else if(strcmp(goal, "lnorm") == 0) g = 4;
+        else if(strcmp(goal, "jacobi"))
+        {
+            vec_num = read_sym_mat(file, matrix);
+            vec_size = vec_num;
+            g = 5;
+        } 
+        else invalid_input();
+    }
+    main_by_goal(-1, g, matrix, vec_num, vec_size);
+}
 

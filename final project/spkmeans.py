@@ -1,11 +1,10 @@
-from fileinput import filename
 import sys
 from enum import Enum
-from typing_extensions import dataclass_transform
 import pandas as pd
 import numpy as np
+import mykmeanssp as spk
 np.random.seed(0)
-class goal(Enum):
+class Goal(Enum):
     spk = 1
     wam = 2
     ddg = 3
@@ -20,16 +19,16 @@ def args_parsing():
     if not k.isnumeric():
         invalid_input()
     k = int(k)
-    g = argv[2]
+
+    goal = argv[2]
     try:
-        g = goal[g]
+        goal = Goal[goal]
     except:
         invalid_input()
     input_file_name = argv[3]
-    return k, g, input_file_name
+    return k, goal, input_file_name
 
     
-
 def kmeans_pp(k, data_points):
     dists = pd.DataFrame(index=range(data_points.shape[0]),columns=range(k))
     num_of_centroids = 1
@@ -56,6 +55,7 @@ def kmeans_pp(k, data_points):
 def euclidean_dist(v1 , v2):
     return sum([((v1[i] - v2[i])**2) for i in range (len(v1))])
 
+
 def eigengap_heuristic():
     return
 
@@ -68,16 +68,29 @@ def invalid_input():
 def main():
     #unfinished - thought maybe i should start the C part and then continue here
     k, goal, filename = args_parsing()
+    matrix = pd.read_csv(filename)
+    vec_num = matrix.shape[0]
+    vec_size = matrix.shape[1]
+    if k > vec_num:
+        invalid_input()
     if k == 0:
-        #TODO:
-        k = eigengap_heuristic()
+        k = spk.heuristic_c(matrix, vec_num, vec_size)
     match goal:
         case 'spk':
-            sym_mat = pd.read_csv(filename)
-            #TODO: check if k > n
+            t = spk.C(k, 1, matrix, vec_num, vec_size)
+            initial_centroids, centroids_indices = kmeans_pp(k, matrix)
+            print_vec(centroids_indices)
+            centroids = spk.kmeans_c(k, matrix, initial_centroids, vec_num, vec_size)
+            for i in range(len(centroids)):
+                print_vec(centroids[i])
+            return 0
         case 'wam':    
-            data_points = pd.read_csv(filename)
-            #TODO: check if k > n
+            return 0
+
+def print_vec(vec):
+    for i in range(len(vec) - 1):
+        print(f"{vec[i]},")
+    print(f"{vec[-1]}\n")
 
 if __name__ == '__main__':
     main()
