@@ -1,4 +1,5 @@
 #ifndef PY_SSIZE_T_CLEAN
+#define PY_SSIZE_T_CLEAN
 
 #include <Python.h>
 #include "spkmeans.h"
@@ -10,7 +11,6 @@
 /* declerations */
 static PyObject* kmeans_C(PyObject *self, PyObject *args);
 static PyObject* C(PyObject *self, PyObject *args);
-static PyObject* heuristic_c(PyObject *self, PyObject *args);
 double** parse_py_table_to_c(PyObject *table_py, int n, int m);
 double** parse_c_table_to_py(double **table_c, int n, int m);
 /*  */
@@ -41,6 +41,7 @@ static PyObject* C(PyObject *self, PyObject *args)
     return NULL;
 }
 
+
 static PyObject* kmeans_C(PyObject *self, PyObject *args)
 {
     int k, vec_num, vec_size, i;
@@ -53,6 +54,7 @@ static PyObject* kmeans_C(PyObject *self, PyObject *args)
     data_points_c = parse_py_table_to_c(data_points_py, vec_num, vec_size);
     initial_centroids_c = parse_py_table_to_c(initial_centroids_py, vec_num, vec_size);
     centroids_c = k_mean(k, data_points_c, initial_centroids_c, vec_num, vec_size);
+    centroids_py = parse_c_table_to_py(centroids_c, vec_num, vec_size);
     for(i = 0; i < vec_num; i++)
     {
         free(data_points_c[i]);
@@ -61,13 +63,15 @@ static PyObject* kmeans_C(PyObject *self, PyObject *args)
     for(i = 0; i < k; i++)
     {
         free(initial_centroids_c[i]);
+        free(centroids_c[i]);
     }
     free(initial_centroids_c);
-    return centroids_c;
+    free(centroids_c);
+    return centroids_py;
 }
 
 
-static PyObject* heuristic_c(PyObject *self, PyObject *args)
+/* static PyObject* heuristic_c(PyObject *self, PyObject *args)
 {
     int k, vec_num, vec_size, i;
     PyObject *data_points_py;
@@ -100,7 +104,7 @@ static PyObject* heuristic_c(PyObject *self, PyObject *args)
     free(eigenvectors);
     return k;
 }
-
+ */
 double** parse_py_table_to_c(PyObject *table_py, int n, int m)
 {
     int i, j;
@@ -132,3 +136,31 @@ double** parse_c_table_to_py(double **table_c, int n, int m)
 }
 
 
+
+static PyMethodDef capiMethods[] = {
+    {"fit",
+    (PyCFunction) fit,
+    METH_VARARGS,
+    PyDoc_STR("returns calculated centroids for given matrix of data points")},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "mykmeanssp",
+    NULL,
+    -1,
+    capiMethods
+};
+
+PyMODINIT_FUNC
+PyInit_mykmeanssp(void) {
+    PyObject *m;
+    m = PyModule_Create(&moduledef);
+    if (!m){
+        return NULL;
+    }
+    return m;
+}
+
+#endif
