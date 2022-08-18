@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import mykmeanssp as spk
 np.random.seed(0)
+
 class Goal(Enum):
     spk = 1
     wam = 2
@@ -57,14 +58,12 @@ def euclidean_dist(v1 , v2):
     return sum([((v1[i] - v2[i])**2) for i in range (len(v1))])
 
 
-
 def invalid_input():
     print("Invalid Input!")
     exit(1)
 
 
 def main():
-    #unfinished - thought maybe i should start the C part and then continue here
     k, goal, filename = args_parsing()
     matrix = pd.read_csv(filename)
     vec_num = matrix.shape[0]
@@ -73,7 +72,7 @@ def main():
         invalid_input()
     match goal:
         case 'spk':
-            t = spk.C(k, 1, matrix, vec_num, vec_size)
+            t = spk.C_part(k, 1, matrix, vec_num, vec_size)
             initial_centroids, centroids_indices = kmeans_pp(k, t)
             print_vec(centroids_indices)
             centroids = spk.kmeans_c(k, t, initial_centroids, vec_num, vec_size)
@@ -81,16 +80,16 @@ def main():
                 print_vec(centroids[i])
             return 0
         case 'wam':    
-            spk.C(k, 2, matrix, vec_num, vec_size)
+            spk.C_part(k, 2, matrix, vec_num, vec_size)
             return 0
         case 'ddg':
-            spk.C(k, 3, matrix, vec_num, vec_size)
+            spk.C_part(k, 3, matrix, vec_num, vec_size)
             return 0
         case 'lnorm':
-            spk.C(k, 4, matrix, vec_num, vec_size)
+            spk.C_part(k, 4, matrix, vec_num, vec_size)
             return 0
         case 'jacobi':
-            spk.C(k, 5, matrix, vec_num, vec_size)
+            spk.C_part(k, 5, matrix, vec_num, vec_size)
             return 0
             
 

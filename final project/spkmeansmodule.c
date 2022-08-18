@@ -10,14 +10,14 @@
 
 /* declerations */
 static PyObject* kmeans_C(PyObject *self, PyObject *args);
-static PyObject* C(PyObject *self, PyObject *args);
+static PyObject* C_part(PyObject *self, PyObject *args);
 double** parse_py_table_to_c(PyObject *table_py, int n, int m);
-double** parse_c_table_to_py(double **table_c, int n, int m);
+PyObject* parse_c_table_to_py(double **table_c, int n, int m)
 /*  */
 
-static PyObject* C(PyObject *self, PyObject *args)
+static PyObject* C_part(PyObject *self, PyObject *args)
 {
-    int k, goal, vec_num, vec_size;
+    int k, goal, vec_num, vec_size, i;
     PyObject *matrix_py, *T_py;
     double **matrix_c, **T_c;
     if(!PyArg_ParseTuple(args, "iiOii", &k, &goal, &matrix_py, &vec_num, &vec_size))
@@ -34,7 +34,7 @@ static PyObject* C(PyObject *self, PyObject *args)
     if(T_c != NULL)
     /* goal is spk - go to kmeans++ */
     {
-        T_py = parse_c_table_to_py(T, vec_num, k);
+        T_py = parse_c_table_to_py(T_c, vec_num, k);
         free(T_c);
         return T_py;
     }
@@ -45,8 +45,8 @@ static PyObject* C(PyObject *self, PyObject *args)
 static PyObject* kmeans_C(PyObject *self, PyObject *args)
 {
     int k, vec_num, vec_size, i;
-    PyObject *initial_centroids_py, *data_points_py;
-    double **data_points_c, **initial_centroids_c, centroids_c;
+    PyObject *initial_centroids_py, *data_points_py, *centroids_py;
+    double **data_points_c, **initial_centroids_c, **centroids_c;
     if(!PyArg_ParseTuple(args, "iOOii", &k, &data_points_py, &initial_centroids_py, &vec_num, &vec_size))
     {
         return NULL;
@@ -108,7 +108,8 @@ static PyObject* kmeans_C(PyObject *self, PyObject *args)
 double** parse_py_table_to_c(PyObject *table_py, int n, int m)
 {
     int i, j;
-    double** table_c = make_mat(n, m);
+    double** table_c;
+    table_c = make_mat(n, m);
     for (i = 0; i < n ; i++)
     {
         for (j = 0 ; j < m ; j++)
@@ -120,9 +121,10 @@ double** parse_py_table_to_c(PyObject *table_py, int n, int m)
 }
 
 
-double** parse_c_table_to_py(double **table_c, int n, int m)
+PyObject* parse_c_table_to_py(double **table_c, int n, int m)
 {
     int i, j;
+    PyObject *table_py;
     table_py = PyList_New(0);
     assert(table_py && "An Error Has Accured");
     for (i = 0; i < n ; i++)
@@ -137,12 +139,10 @@ double** parse_c_table_to_py(double **table_c, int n, int m)
 
 
 
-static PyMethodDef capiMethods[] = {
-    {"fit",
-    (PyCFunction) fit,
-    METH_VARARGS,
-    PyDoc_STR("returns calculated centroids for given matrix of data points")},
-    {NULL, NULL, 0, NULL}
+static PyMethodDef _methods[] = {
+        FUNC(METH_VARARGS, C_part, "all parts of C except kmeans"),
+        FUNC(METH_VARARGS, kmeans_C, "kmeans part of C code"),
+        {NULL, NULL, 0, NULL}
 };
 
 static struct PyModuleDef moduledef = {
@@ -150,7 +150,7 @@ static struct PyModuleDef moduledef = {
     "mykmeanssp",
     NULL,
     -1,
-    capiMethods
+    _methods
 };
 
 PyMODINIT_FUNC
