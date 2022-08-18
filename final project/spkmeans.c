@@ -626,16 +626,15 @@ void avg(double **cluster, int n, double *centroid, int vec_size)
         2 = wam
         3 = ddg
         4 = lnorm
-        5 = jacobi
-        6 = heuristic */
+        5 = jacobi*/
 /* in case of spk: edits T inplace
     in case of heuristic: returns k
     other: return values are default and meaningless */
-int main_by_goal(double **T, int k, int goal, double **matrix, int vec_num, int vec_size)
+double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size)
 {
-    int i, n, vec_size, vec_num, j, res;
+    int i, n, vec_size, vec_num, j;
     double **sym_mat, **data_points, **eigenvectors, **weighted_mat, 
-            **full_weighted_mat, *ddm, **full_ddm, **laplace, **U;
+            **full_weighted_mat, *ddm, **full_ddm, **laplace, **U, **res, **T;
     double *eigenvalues, *norm_of_rows;
     if(goal == 5)
     /* goal is jacobi */
@@ -738,15 +737,16 @@ int main_by_goal(double **T, int k, int goal, double **matrix, int vec_num, int 
                             T[i][j] = U[i][j]/norm_of_rows[i];
                         }
                     }
+                    res = T;
                 }
                 free(norm_of_rows);
                 free(U);
                 free(eigenvalues);
                 free(eigenvectors);
                 free(laplace);
-        }
-    free(ddm);
-    }
+                }
+            free(ddm);
+        }   
     free(weighted_mat);
     for(i = 0; i < vec_num; i++)
     {
