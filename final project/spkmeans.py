@@ -19,7 +19,8 @@ def args_parsing():
     if not k.isnumeric():
         invalid_input()
     k = int(k)
-
+    if k < 0:
+        invalid_input()
     goal = argv[2]
     try:
         goal = Goal[goal]
@@ -56,9 +57,6 @@ def euclidean_dist(v1 , v2):
     return sum([((v1[i] - v2[i])**2) for i in range (len(v1))])
 
 
-def eigengap_heuristic():
-    return
-
 
 def invalid_input():
     print("Invalid Input!")
@@ -73,19 +71,28 @@ def main():
     vec_size = matrix.shape[1]
     if k > vec_num:
         invalid_input()
-    if k == 0:
-        k = spk.heuristic_c(matrix, vec_num, vec_size)
     match goal:
         case 'spk':
             t = spk.C(k, 1, matrix, vec_num, vec_size)
-            initial_centroids, centroids_indices = kmeans_pp(k, matrix)
+            initial_centroids, centroids_indices = kmeans_pp(k, t)
             print_vec(centroids_indices)
-            centroids = spk.kmeans_c(k, matrix, initial_centroids, vec_num, vec_size)
+            centroids = spk.kmeans_c(k, t, initial_centroids, vec_num, vec_size)
             for i in range(len(centroids)):
                 print_vec(centroids[i])
             return 0
         case 'wam':    
+            spk.C(k, 2, matrix, vec_num, vec_size)
             return 0
+        case 'ddg':
+            spk.C(k, 3, matrix, vec_num, vec_size)
+            return 0
+        case 'lnorm':
+            spk.C(k, 4, matrix, vec_num, vec_size)
+            return 0
+        case 'jacobi':
+            spk.C(k, 5, matrix, vec_num, vec_size)
+            return 0
+            
 
 def print_vec(vec):
     for i in range(len(vec) - 1):
