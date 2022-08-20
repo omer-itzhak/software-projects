@@ -1,4 +1,3 @@
-#ifndef PY_SSIZE_T_CLEAN
 #define PY_SSIZE_T_CLEAN
 
 #include <Python.h>
@@ -12,17 +11,17 @@
 static PyObject* kmeans_C(PyObject *self, PyObject *args);
 static PyObject* C_part(PyObject *self, PyObject *args);
 double** parse_py_table_to_c(PyObject *table_py, int n, int m);
-PyObject* parse_c_table_to_py(double **table_c, int n, int m)
+PyObject* parse_c_table_to_py(double **table_c, int n, int m);
 /*  */
 
 static PyObject* C_part(PyObject *self, PyObject *args)
 {
     int k, goal, vec_num, vec_size, i;
-    PyObject *matrix_py, *T_py;
+    PyObject *matrix_py, *T_py = Py_None;
     double **matrix_c, **T_c;
     if(!PyArg_ParseTuple(args, "iiOii", &k, &goal, &matrix_py, &vec_num, &vec_size))
     {
-        return NULL;
+        return T_py;
     }
     matrix_c = parse_py_table_to_c(matrix_py, vec_num, vec_size);
     T_c = main_by_goal(k, goal, matrix_c, vec_num, vec_size);
@@ -36,9 +35,8 @@ static PyObject* C_part(PyObject *self, PyObject *args)
     {
         T_py = parse_c_table_to_py(T_c, vec_num, k);
         free(T_c);
-        return T_py;
     }
-    return NULL;
+    return T_py;
 }
 
 
@@ -137,7 +135,7 @@ PyObject* parse_c_table_to_py(double **table_c, int n, int m)
     return table_py;
 }
 
-
+#define FUNC(_flag, _name, _docstring) { #_name, (PyCFunction)_name, _flag, PyDoc_STR(_docstring) }
 
 static PyMethodDef _methods[] = {
         FUNC(METH_VARARGS, C_part, "all parts of C except kmeans"),
@@ -162,5 +160,3 @@ PyInit_mykmeanssp(void) {
     }
     return m;
 }
-
-#endif

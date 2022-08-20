@@ -1,9 +1,11 @@
 #ifndef MAX_INT
 #define MAX_INT 2147483647
+#include "spkmeans.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 /* declerations */
 double** make_mat(int n, int m);
@@ -26,8 +28,8 @@ int read_sym_mat(FILE* file, double** sym_mat);
 void* print_vec_row(double *vec, int n);
 void* print_mat_rows(double **mat, int n, int m);
 void* print_mat_cols(double **mat, int n, int m);
-static double** k_mean(int k, double **data_points, double **centroids,
-                        int vec_num,int vec_size);                       
+double** k_mean(int k, double **data_points, double **centroids, int vec_num,
+                int vec_size);                       
 void avg(double **cluster, int n, double *centroid, int vec_size);
 int eigengap_heuristic(double *eigenvalues, int n);
 double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size);
@@ -526,8 +528,8 @@ void* print_mat_cols(double **mat, int n, int m)
 }
 
 
-static double** k_mean(int k, double **data_points, double **centroids,
-                        int vec_num,int vec_size)
+double** k_mean(int k, double **data_points, double **centroids, int vec_num,
+                int vec_size)
 {
     int i, iteration=0, cluster_i = 0, idx, g, more_than_epsilon = 1;
     double min_euclidist, euclidist, norm,dist;
