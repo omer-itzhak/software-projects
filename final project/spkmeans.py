@@ -80,23 +80,43 @@ def main():
                 print_vec(centroids[i])
             return 0
         case 'wam':    
-            spk.C_part(k, 2, matrix, vec_num, vec_size)
+            weighted_mat = spk.C_part(k, 2, matrix, vec_num, vec_size)
+            print_mat_rows(weighted_mat)
             return 0
         case 'ddg':
-            spk.C_part(k, 3, matrix, vec_num, vec_size)
+            ddm = spk.C_part(k, 3, matrix, vec_num, vec_size)
+            print_mat_rows(ddm)
             return 0
         case 'lnorm':
-            spk.C_part(k, 4, matrix, vec_num, vec_size)
+            laplace = spk.C_part(k, 4, matrix, vec_num, vec_size)
+            print_mat_rows(laplace)
             return 0
         case 'jacobi':
-            spk.C_part(k, 5, matrix, vec_num, vec_size)
+            jacobi = spk.C_part(k, 5, matrix, vec_num, vec_size)
+            eigenvalues, eigenvectors = jacobi[0], jacobi[1]
+            print_vec(eigenvalues)
+            print_mat_cols(eigenvectors)
             return 0
             
 
 def print_vec(vec):
     for i in range(len(vec) - 1):
-        print(f"{vec[i]},")
+        x = float("{0:.4f}".format(vec[i]))
+        print(f"{x},")
     print(f"{vec[-1]}\n")
+    
+
+def print_mat_rows(mat):
+    for i in range(len(mat)):
+        print_vec(mat[i])
+
+def print_mat_cols(mat):
+    for i in range(len(mat)):
+        for j in range(len(mat)):
+            x = float("{0:.4f}".format(mat[j][i]))
+            print(f"{x}")
+        print("\n")
+
 
 if __name__ == '__main__':
     main()

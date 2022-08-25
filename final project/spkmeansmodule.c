@@ -17,26 +17,32 @@ PyObject* parse_c_table_to_py(double **table_c, int n, int m);
 static PyObject* C_part(PyObject *self, PyObject *args)
 {
     int k, goal, vec_num, vec_size, i;
-    PyObject *matrix_py, *T_py = Py_None;
-    double **matrix_c, **T_c;
+    PyObject *matrix_py, *res_py = Py_None;
+    double **matrix_c; 
+    double ***res_c;
     if(!PyArg_ParseTuple(args, "iiOii", &k, &goal, &matrix_py, &vec_num, &vec_size))
     {
-        return T_py;
+        return Py_None;
     }
     matrix_c = parse_py_table_to_c(matrix_py, vec_num, vec_size);
-    T_c = main_by_goal(k, goal, matrix_c, vec_num, vec_size);
+    res_c = main_by_goal(k, goal, matrix_c, vec_num, vec_size);
+    if(goal == 5)
+    {
+        res_py = PyList_New(0);
+        PyList_Append(res_py, parse_c_table_to_py(res_c[0], 1, vec_num));
+        PyList_Append(res_py, parse_c_table_to_py(res_c[1], vec_num, vec_num));
+    }
+    else
+    {
+        res_py = parse_c_table_to_py(res_c[0], vec_num, vec_num);
+    }
+    free(res_c);
     for(i = 0; i < vec_num; i++)
     {
         free(matrix_c[i]);
     }
     free(matrix_c);
-    if(T_c != NULL)
-    /* goal is spk - go to kmeans++ */
-    {
-        T_py = parse_c_table_to_py(T_c, vec_num, k);
-        free(T_c);
-    }
-    return T_py;
+    return res_py;
 }
 
 
