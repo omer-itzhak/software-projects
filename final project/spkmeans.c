@@ -407,7 +407,7 @@ int eigengap_heuristic(double *eigenvalues, int n)
     double max_arg, deltha;
     max_arg = -INFINITY;
     qsort(eigenvalues, n, sizeof(double), comparator);
-    for(i = 0; i <= n/2; i++)
+    for(i = 0; i <= (int)n/2; i++)
     {
         deltha = fabs(eigenvalues[i] - eigenvalues[i + 1]); 
         if(deltha > max_arg)
@@ -416,7 +416,7 @@ int eigengap_heuristic(double *eigenvalues, int n)
             k = i;
         }
     }
-    return k;
+    return k + 1;
 }
 
 void* invalid_input()
@@ -600,8 +600,8 @@ double** k_mean(int k, double **data_points, double **centroids, int vec_num,
     free(centroids);
     free(clusters);
     free(clusters_sizes);
-    /* printf("centroids in kmeans c is:\n");
-    print_mat_rows(new_centroids, k, vec_size); */
+    printf("centroids in kmeans c is:\n");
+    print_mat_rows(new_centroids, k, vec_size); 
     return new_centroids;
 }
 
@@ -633,7 +633,7 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
     int i, j, max_idx;
     double max_val, pow_sum;
     double *eigenvalues, *ddm;
-    double **eigenvectors, **weighted_mat, 
+    double **eigenvectors, **weighted_mat, **k_eigenvectors, 
             **full_ddm, **laplace, **U, **T;
     double ***res;
     res = (double ***)malloc(2 * sizeof(double **));
@@ -693,12 +693,14 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                         printf("k:%i\n",k);
                         exit(1);
                     }
+                    k_eigenvectors = (double**)calloc(k, sizeof(double*));
+                    assert(k_eigenvectors && "An Error Has Accured");
                     U = make_mat(vec_num, k);
+                    /* finding the largest k eigenvalues */
                     for(i = 0; i < k; i++)
                     {
                         max_val = -INFINITY;
                         max_idx = -1;
-                        /* finding the largest eigenvalue */
                         for(j = 0; j < vec_num; j++)
                         {
                             if(eigenvalues[j] > max_val)
@@ -707,13 +709,18 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                                 max_idx = j;
                             }
                         }
-                        /* copying eigenvectors[max_idx] into U in transpose */
-                        for(j = 0; j < vec_num; j++)
-                        {
-                            U[i][j] = eigenvectors[max_idx][j];
-                        }
+                        k_eigenvectors[i] = eigenvectors[max_idx];
                         eigenvalues[max_idx] = -INFINITY;
                     }
+                    /* making U in transpose */
+                    for(i = 0; i < k; i++)
+                    {
+                        for(j = 0; j < vec_num; j++)
+                        {
+                            U[j][i] = k_eigenvectors[i][j];
+                        }
+                    }
+                    free(k_eigenvectors);
                     T = make_mat(vec_num, k);
                     for(i = 0; i < vec_num; i++)
                     {
@@ -722,6 +729,7 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                         {
                             pow_sum += pow(U[i][j], 2);
                         }
+                        pow_sum = sqrt(pow_sum);
                         for(j = 0; j < k; j++)
                         {
                             /* to avoid dividing by zero */
