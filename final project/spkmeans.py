@@ -66,19 +66,18 @@ def main():
     if goal == 'spk':
         if k > vec_num:
             invalid_input()
-        res = spk.C_part(k, 1, mat_for_c, vec_num, vec_size)
-        T = res[1]
+        T = spk.C_part(k, 1, mat_for_c, vec_num, vec_size)
         vec_num = len(T)
-        vec_size = len(T[0])
-        if k == 0:
-            k = res[0][0][0]
+        k = len(T[0])
+        vec_size = k;
         initial_centroids, centroids_indices = kmeans_pp(k, T)
         centroids_for_c = prepare_mat_for_c(initial_centroids)
         t_for_c = prepare_mat_for_c(T)
         sorted_indices = sorted(centroids_indices, reverse = 1)
         print_int_vec(sorted_indices)
-        centroids = spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
-        print_mat_rows(centroids)
+        spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
+        # centroids = spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
+        # print_mat_rows(centroids)
     elif goal == 'wam':
         weighted_mat = spk.C_part(k, 2, mat_for_c, vec_num, vec_size)[1]
         print_mat_rows(weighted_mat)
@@ -90,8 +89,8 @@ def main():
         print_mat_rows(laplace)
     else: # goal = 'jacobi'
         jacobi = spk.C_part(k, 5, mat_for_c, vec_num, vec_size)
-        eigenvalues = jacobi[0]
-        eigenvectors = jacobi[1::]
+        eigenvalues = jacobi[0][0]
+        eigenvectors = jacobi[1]
         print_vec(eigenvalues)
         print_mat_rows(eigenvectors)
         return 0

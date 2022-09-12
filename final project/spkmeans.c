@@ -34,7 +34,7 @@ double** k_mean(int k, double **data_points, double **centroids, int vec_num,
 void avg(double **cluster, int n, double *centroid, int vec_size);
 void copy_mat(double** copy_to, double **copy_from, int n);
 int eigengap_heuristic(double *eigenvalues, int n);
-double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size);
+double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size);
 int comparator(const void *num1, const void *num2);
 /*  */
 
@@ -309,6 +309,15 @@ void copy_mat(double** copy_to, double **copy_from, int n)
     }
 }
 
+void copy_vec(double *copy_to, double *copy_from, int n)
+{
+    int i = 0;
+    for(; i < n; i++)
+    {
+        copy_to[i] = copy_from[i];
+    }
+}
+
 
 /* with relation to the assignment A' will be referred to as B 
 res = [eigenvalues, eigenvectors]
@@ -405,17 +414,21 @@ int eigengap_heuristic(double *eigenvalues, int n)
 {
     int i, k;
     double max_arg, deltha;
+    double *copy = (double*)malloc(n * sizeof(double));
+    assert(copy && "An Error Has Accured");
+    copy_vec(copy, eigenvalues, n);
     max_arg = -INFINITY;
-    qsort(eigenvalues, n, sizeof(double), comparator);
-    for(i = 0; i <= (int)n/2; i++)
+    qsort(copy, n, sizeof(double), comparator);
+    for(i = 0; i < (int)n/2; i++)
     {
-        deltha = fabs(eigenvalues[i] - eigenvalues[i + 1]); 
+        deltha = fabs(copy[i] - copy[i + 1]); 
         if(deltha > max_arg)
         {
             max_arg = deltha;
             k = i;
         }
     }
+    free(copy);
     return k + 1;
 }
 
@@ -600,8 +613,6 @@ double** k_mean(int k, double **data_points, double **centroids, int vec_num,
     free(centroids);
     free(clusters);
     free(clusters_sizes);
-    printf("centroids in kmeans c is:\n");
-    print_mat_rows(new_centroids, k, vec_size); 
     return new_centroids;
 }
 
@@ -622,34 +633,46 @@ void avg(double **cluster, int n, double *centroid, int vec_size)
 }
 
 /* goals:
-        1 = spk -> res = [T, NULL]
-        2 = wam -> res= [weighted_mat, NULL]
-        3 = ddg -> res = [ddm, NULL]
-        4 = lnorm -> res = [laplace, NULL]
-        5 = jacobi -> res = [eigenvalues, eigenvectors]
+        1 = spk -> res = T
+        2 = wam -> res= weighted_mat
+        3 = ddg -> res = ddm
+        4 = lnorm -> res = laplace
+        5 = jacobi -> res = [eigenvalues]
+                            [eigenvectors]
 */        
-double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size)
+double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size)
 {
     int i, j, max_idx;
     double max_val, pow_sum;
     double *eigenvalues, *ddm;
-    double **eigenvectors, **weighted_mat, **k_eigenvectors, 
-            **full_ddm, **laplace, **U, **T;
-    double ***res;
-    res = (double ***)malloc(2 * sizeof(double **));
-    assert(res && "An Error Has Accured\n");
+    double **eigenvectors, **weighted_mat,
+            **full_ddm, **laplace, **U, **T, **res;
+    double ***jacobi;
+    /* res = (double **)malloc(2 * sizeof(double *));
+    assert(res && "An Error Has Accured\n"); */
     if(goal == 5)
+    /* goal is jacobi */
     {
-        res = jacobi_algorithm(matrix, vec_num);
+        jacobi = jacobi_algorithm(matrix, vec_num);
+        res = make_mat(vec_num + 1, vec_num);
+        copy_vec(res[0], jacobi[0][0], vec_num);
+        copy_mat(res + vec_num * sizeof(double), jacobi[1], vec_num);
+/*         free(jacobi[0][0]);
+        free(jacobi[0]);
+        for(i = 0; i < vec_num; i++)
+        {
+            free(jacobi[1][i]);
+        }
+        free(jacobi[1]);
+        free(jacobi); */
     }
     else
     {
-        res[0] = make_mat(1,1);
         weighted_mat = weighted_adjecency_matrix(vec_num, matrix, vec_size);
         if(goal == 2)
         /* goal is wam */
         {
-            res[1] = weighted_mat;
+            res = weighted_mat;
         }
         else
         /* goal is ddg or lnorm */
@@ -664,7 +687,7 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                 {
                     full_ddm[i][i] = ddm[i];
                 }
-                res[1] = full_ddm;
+                res = full_ddm;
             }
             else 
             /* goal is lnorm or spk */
@@ -673,15 +696,15 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                 if(goal == 4)
                 /* goal is lnorm */
                 {
-                    res[1] = laplace;
+                    res = laplace;
                 }
                 else
                 /* goal is spk*/
                 {
                     /* laplace is of size vec_num x vec_num */
-                    res = jacobi_algorithm(laplace, vec_num);
-                    eigenvalues = res[0][0];
-                    eigenvectors = res[1];
+                    jacobi = jacobi_algorithm(laplace, vec_num);
+                    eigenvalues = jacobi[0][0];
+                    eigenvectors = jacobi[1];
 
                     /*works untill here depanding on the fact that jacobi,lnorm,ddg,wam is currect*/
 
@@ -689,12 +712,7 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                     if(k == 0)
                     {
                         k = eigengap_heuristic(eigenvalues, vec_num);
-                        res[0][0][0] = (double)k;
-                        printf("k:%i\n",k);
-                        exit(1);
                     }
-                    k_eigenvectors = (double**)calloc(k, sizeof(double*));
-                    assert(k_eigenvectors && "An Error Has Accured");
                     U = make_mat(vec_num, k);
                     /* finding the largest k eigenvalues */
                     for(i = 0; i < k; i++)
@@ -709,25 +727,21 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                                 max_idx = j;
                             }
                         }
-                        k_eigenvectors[i] = eigenvectors[max_idx];
-                        eigenvalues[max_idx] = -INFINITY;
-                    }
-                    /* making U in transpose */
-                    for(i = 0; i < k; i++)
-                    {
+                        /* making U in transpose */
                         for(j = 0; j < vec_num; j++)
                         {
-                            U[j][i] = k_eigenvectors[i][j];
-                        }
+                            U[j][i] = eigenvectors[j][i];
+                        }                        
+                        eigenvalues[max_idx] = -INFINITY;
                     }
-                    free(k_eigenvectors);
-                    T = make_mat(vec_num, k);
-                    for(i = 0; i < vec_num; i++)
+                    T = make_mat(vec_num + 1, k);
+                    T[0][0] = (double)k;
+                    for(i = 1; i < vec_num + 1; i++)
                     {
                         pow_sum = 0;
                         for(j = 0; j < k; j++)
                         {
-                            pow_sum += pow(U[i][j], 2);
+                            pow_sum += pow(U[i - 1][j], 2);
                         }
                         pow_sum = sqrt(pow_sum);
                         for(j = 0; j < k; j++)
@@ -735,12 +749,12 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
                             /* to avoid dividing by zero */
                             if(pow_sum > 0)
                             {
-                                T[i][j] = U[i][j] / pow_sum;
+                                T[i][j] = U[i - 1][j] / pow_sum;
                             } 
                             else T[i][j] = 0.0;           
                         }
                     }
-                    res[1] = T;
+                    res = T;
                     /* fails to free */
 /*                     for(i = 0; i < vec_num; i++)
                     {
@@ -769,6 +783,7 @@ double*** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_si
     free(matrix); */
     return res;
 }
+
 /* reading input from CMD */
 int main(int argc, char *argv[])
 {
@@ -776,8 +791,8 @@ int main(int argc, char *argv[])
     char *goal;
     FILE *file;
     /* matrix is what we read of the file : data points / sym mat */
-    double **matrix = NULL, **weighted_mat, **ddm, **laplace, **eigenvectors, **eigenvalues;
-    double ***res = NULL;
+    double *eigenvalues;
+    double **jacobi, **matrix = NULL, **weighted_mat, **ddm, **laplace, **eigenvectors;
     double ***data;
     if(argc != 3)
     {
@@ -799,8 +814,7 @@ int main(int argc, char *argv[])
         free(data[1]);
         free(data[2][0]);
         free(data[2]);
-        res = main_by_goal(-1, 2, matrix, vec_num, vec_size);
-        weighted_mat = res[1];
+        weighted_mat = main_by_goal(-1, 2, matrix, vec_num, vec_size);
         print_mat_rows(weighted_mat, vec_num, vec_num);
         for(i = 0; i < vec_num; i++)
         {
@@ -809,7 +823,6 @@ int main(int argc, char *argv[])
         }
         free(matrix);
         free(weighted_mat);
-        free(res);
         free(data);
     }
     else if(strcmp(goal, "ddg") == 0)
@@ -822,8 +835,7 @@ int main(int argc, char *argv[])
         free(data[1]);
         free(data[2][0]);
         free(data[2]);
-        res = main_by_goal(-1, 3, matrix, vec_num, vec_size);
-        ddm = res[1];
+        ddm = main_by_goal(-1, 3, matrix, vec_num, vec_size);
         print_mat_rows(ddm, vec_num, vec_num);
         for(i = 0; i < vec_num; i++)
         {
@@ -832,7 +844,6 @@ int main(int argc, char *argv[])
         }
         free(matrix);
         free(ddm);
-        free(res);
         free(data);
     }
     else if(strcmp(goal, "lnorm") == 0)
@@ -845,8 +856,7 @@ int main(int argc, char *argv[])
         free(data[1]);
         free(data[2][0]);
         free(data[2]);
-        res = main_by_goal(-1, 4, matrix, vec_num, vec_size);
-        laplace = res[1];
+        laplace = main_by_goal(-1, 4, matrix, vec_num, vec_size);
         print_mat_rows(laplace, vec_num, vec_num);
         for(i = 0; i < vec_num; i++)
         {
@@ -855,7 +865,6 @@ int main(int argc, char *argv[])
         }
         free(matrix);
         free(laplace);
-        free(res);
         free(data);
     } 
 
@@ -869,10 +878,10 @@ int main(int argc, char *argv[])
         free(data[1]);
         free(data[2][0]);
         free(data[2]);
-        res = main_by_goal(-1, 5, matrix, vec_num, vec_size);
-        eigenvalues = res[0];
-        eigenvectors = res[1];
-        print_vec_row(eigenvalues[0],vec_num);
+        jacobi = main_by_goal(-1, 5, matrix, vec_num, vec_size);
+        eigenvalues = jacobi[0];
+        eigenvectors = jacobi + vec_num * sizeof(double);
+        print_vec_row(eigenvalues,vec_num);
         print_mat_rows(eigenvectors, vec_num, vec_num);
         /* problem here: */
 /*         for(i = 0; i < vec_num; i++)
@@ -881,10 +890,10 @@ int main(int argc, char *argv[])
             free(matrix[i]);
         }
         free(matrix); */
-        free(eigenvalues[0]);
+        free(eigenvalues);
         free(eigenvalues);
         free(eigenvectors);
-        free(res);
+        free(jacobi);
         free(data);
         
     }
