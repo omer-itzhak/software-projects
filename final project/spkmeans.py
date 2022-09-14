@@ -1,138 +1,149 @@
 import sys
+import pandas as pd
 import numpy as np
-import spkmeansmodule as spkmm
+import mykmeanssp as spk
+np.random.seed(0)
+
+def args_parsing():
+    goals = {'spk','wam','ddg','lnorm','jacobi'}
+    argv = sys.argv
+    if len(argv) != 4:
+        invalid_input()
+    k = argv[1]
+    if not k.isnumeric():
+        invalid_input()
+    k = int(k)
+    if k < 0:
+        invalid_input()
+    goal = argv[2]
+    if goal not in goals:
+        invalid_input()
+    input_file_name = argv[3]
+    return k, goal, input_file_name
+
+    
+def kmeans_pp(k, data_points):
+    vec_num = len(data_points)
+    dists = pd.DataFrame(index=range(vec_num),columns=range(k))
+    num_of_centroids = 1
+    idx_lst = [i for i in range(vec_num)]
+    idx_of_first_centroid = np.random.randint(vec_num)
+    centroids_indices = [idx_of_first_centroid]
+    centroids = [data_points[idx_of_first_centroid]]
+    while num_of_centroids != k:
+        weights = []
+        centroid = centroids[-1]
+        for vector_idx in range(vec_num):
+            data_point = data_points[vector_idx]
+            dists[num_of_centroids - 1][vector_idx] = euclidean_dist(data_point,centroid)
+            weights.append(dists.iloc[vector_idx].min())
+        sum_of_dists = sum(weights)
+        for i in range(vec_num):
+            weights[i] = weights[i]/sum_of_dists
+        idx_of_centroid = (np.random.choice(idx_lst, 1, p = weights))[0]
+        centroids_indices.append(idx_of_centroid)
+        centroids.append(data_points[idx_of_centroid])
+        num_of_centroids += 1
+    return (centroids, centroids_indices)
+    
+
+def euclidean_dist(v1 , v2):
+    return sum([((v1[i] - v2[i])**2) for i in range (len(v1))])
+
+
+def invalid_input():
+    print("Invalid Input!")
+    exit(1)
+
+
+def main():
+    k, goal, filename = args_parsing()
+    # matrix is datapoints or sym mat
+    matrix = np.loadtxt(filename, delimiter=',')
+    vec_num = np.shape(matrix)[0]
+    vec_size = np.shape(matrix)[1]
+    mat_for_c = matrix.flatten().tolist()
+    if goal == 'spk':
+        if k > vec_num:
+            invalid_input()
+        T = spk.C_part(k, 1, mat_for_c, vec_num, vec_size)
+        vec_num = len(T)
+        k = len(T[0])
+        vec_size = k;
+        initial_centroids, centroids_indices = kmeans_pp(k, T)
+        centroids_for_c = prepare_mat_for_c(initial_centroids)
+        t_for_c = prepare_mat_for_c(T)
+        sorted_indices = sorted(centroids_indices, reverse = 1)
+        print_int_vec(sorted_indices)
+        spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
+        # centroids = spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
+        # print_mat_rows(centroids)
+    elif goal == 'wam':
+        weighted_mat = spk.C_part(k, 2, mat_for_c, vec_num, vec_size)
+        print_mat_rows(weighted_mat)
+    elif goal == 'ddg':
+        ddm = spk.C_part(k, 3, mat_for_c, vec_num, vec_size)
+        print_mat_rows(ddm)
+    elif goal == 'lnorm':
+        laplace = spk.C_part(k, 4, mat_for_c, vec_num, vec_size)
+        print_mat_rows(laplace)
+    else: # goal = 'jacobi'
+        jacobi = spk.C_part(k, 5, mat_for_c, vec_num, vec_size)
+        eigenvalues = jacobi[0]
+        eigenvectors = jacobi[1::]
+        print_vec(eigenvalues)
+        print_mat_rows(eigenvectors)
+        return 0
+            
+
+def prepare_mat_for_c(mat):
+    res = []
+    for i in range(len(mat)):
+        for j in range(len(mat[0])):
+            res.append(mat[i][j])
+    return res
 
 def print_vec(vec):
     str = ""
     for i in range(len(vec)):
-        x = "{0:.4f}".format(vec[i])
-        str += x
+        if vec[i] < 0 and vec[i] > -0.00005:
+            str += "0.0000";
+        else:
+            x = "{0:.4f}".format(vec[i])
+            str += x
         if i != len(vec) - 1:
             str += ","
     print(str)
 
 
+def print_int_vec(vec):
+    str = ""
+    for i in range(len(vec)):
+        str += "{}".format(vec[i])
+        if i != len(vec) - 1:
+            str += ","
+    print(str)
+    
+    
 
-def initializeCentroids(vectors, k, n):
-    np.random.seed(0)
-    centroids = []
-    random_index = np.random.randint(n)
-    centroids.append(vectors[random_index])
-    indexes_used = [random_index]
-    index_list=[x for x in range(n)]
-    i = 1
-    while (i<k):
-        distances = retrieveDistances(vectors, centroids)
-        prob = retrieveProb(distances)
-        new_index = (np.random.choice(index_list, 1, p=prob))[0]
-        centroids.append(vectors[new_index])
-        indexes_used.append(new_index)
-        i += 1
-    return centroids, indexes_used
+def print_mat_rows(mat):
+    for i in range(len(mat)):
+        print_vec(mat[i])
 
-# distances for init centroids
-def retrieveDistances(vectors, centroids):
-    n = len(vectors)
-    distances = [0 for i in range(n)]
-    for j in range(n):
-        min=float('inf')
-        for q in range(len(centroids)):
-            dist = distanceCalc(vectors[j], centroids[q])
-            if dist < min:
-                min = dist
-        distances[j] = min
-    return distances
 
-def distanceCalc(x, y):
-    dist=0
-    for i in range(len(x)):
-        dist+=(float(x[i])-float(y[i]))**2
-    return dist
+def print_mat_cols(mat):
+    for i in range(len(mat)):
+        str = ""
+        for j in range(len(mat)):
+            if mat[j][i] < 0 and mat[j][i] > -0.00005:
+                str += "0.0000";
+            else:
+                x = "{0:.4f}".format(mat[j][i])
+                str += x
+            if j != len(mat) - 1:
+                str += ","
+        print(str)
 
-# probabilities for init centroids
-def retrieveProb(distances):
-    n = len(distances)
-    Sum = sum(distances)
-    prob = [0.0 for i in range(n)]
-    for i in range(n):
-        prob[i] = distances[i]/Sum
-    return prob
 
-# flatten mat is a mat in an array form, for C-API
-def retrieveFlattenMat(mat,rows,columns):
-    lst = []
-    for i in range(rows):
-        for j in range(columns):
-            lst.append(float(mat[i][j]))
-    return lst
-
-# print matrices in python
-def printMatrix(mat, rows, columns):
-    for i in range(rows):
-        for j in range(columns):
-            mat[i][j] = '%.4f'%mat[i][j]
-        result = []
-    for i in range(rows):
-        result.append(",".join(mat[i]))
-    for i in range(rows):
-            print(result[i])
-
-def printSPK(final_centroids,indexes, k):    
-    for i in range(len(indexes)):
-        indexes[i] = str(indexes[i])
-    indexes = ",".join(indexes)
-    print(indexes)
-    printMatrix(final_centroids, k, k)
-
-# main 
 if __name__ == '__main__':
-    
-    if len(sys.argv) != 4:
-        print("Invalid Input!")
-        sys.exit()
-    # read arguments
-    try:
-        k = int(sys.argv[1]) 
-        max_iter = 300
-        goal = sys.argv[2]
-        possible_goals = {"wam","ddg","lnorm","jacobi","spk"}
-        if goal not in possible_goals:
-            print("Invalid Input!")
-            sys.exit()
-        # read the input file
-        input = np.loadtxt(sys.argv[3], delimiter=',')
-    except:
-        print("Invalid Input!")
-        sys.exit()
-
-    n = input.shape[0]
-    d = input.shape[1]
-    # check for validity of k input
-    if ((k==1 or k<0) and goal=="spk") or k>=n: 
-        print("Invalid Input!")
-        sys.exit()
-    
-    # send the input to get the final matrix from C, by the desired goal
-    flatten_input = input.flatten().tolist()
-    final_mat = spkmm.getMatrixByGoal(k, n, d, flatten_input, goal)
-    rows = len(final_mat)
-    columns = len(final_mat[0])
-
-    # if goal is not spk, print the matrix from C as is
-    if goal != "spk":
-        printMatrix(final_mat, rows, columns)
-
-    # spk: T matrix is recieved by C, sent to fit function, Kmeans in C
-    else:
-        k = columns
-        centroids, indexes = initializeCentroids(final_mat, k, n)
-        
-        # preparing the matrices for input to C
-        initial_centroids = retrieveFlattenMat(centroids, k, k)
-        t_matrix = retrieveFlattenMat(final_mat, n, k)
-        
-        # final centroids received by fit functions 
-        final_centroids = spkmm.fit(k, n, k, max_iter, initial_centroids, t_matrix)
-        
-        # prints the initial indexes and the final centroids
-        printSPK(final_centroids, indexes, k)
+    main()
