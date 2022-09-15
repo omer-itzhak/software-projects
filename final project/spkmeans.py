@@ -59,7 +59,10 @@ def invalid_input():
 def main():
     k, goal, filename = args_parsing()
     # matrix is datapoints or sym mat
-    matrix = np.loadtxt(filename, delimiter=',')
+    try:
+        matrix = np.loadtxt(filename, delimiter=',')
+    except:
+        invalid_input()
     vec_num = np.shape(matrix)[0]
     vec_size = np.shape(matrix)[1]
     mat_for_c = matrix.flatten().tolist()
@@ -69,15 +72,12 @@ def main():
         T = spk.C_part(k, 1, mat_for_c, vec_num, vec_size)
         vec_num = len(T)
         k = len(T[0])
-        vec_size = k;
+        vec_size = k
         initial_centroids, centroids_indices = kmeans_pp(k, T)
         centroids_for_c = prepare_mat_for_c(initial_centroids)
         t_for_c = prepare_mat_for_c(T)
-        sorted_indices = sorted(centroids_indices, reverse = 1)
-        print_int_vec(sorted_indices)
-        spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
-        # centroids = spk.fit(k, t_for_c, centroids_for_c, vec_num, vec_size)
-        # print_mat_rows(centroids)
+        print_int_vec(centroids_indices)
+        spk.fit(k, t_for_c, centroids_for_c, vec_num)
     elif goal == 'wam':
         weighted_mat = spk.C_part(k, 2, mat_for_c, vec_num, vec_size)
         print_mat_rows(weighted_mat)
@@ -106,11 +106,8 @@ def prepare_mat_for_c(mat):
 def print_vec(vec):
     str = ""
     for i in range(len(vec)):
-        if vec[i] < 0 and vec[i] > -0.00005:
-            str += "0.0000";
-        else:
-            x = "{0:.4f}".format(vec[i])
-            str += x
+        x = "{0:.4f}".format(vec[i])
+        str += x
         if i != len(vec) - 1:
             str += ","
     print(str)
@@ -130,19 +127,6 @@ def print_mat_rows(mat):
     for i in range(len(mat)):
         print_vec(mat[i])
 
-
-def print_mat_cols(mat):
-    for i in range(len(mat)):
-        str = ""
-        for j in range(len(mat)):
-            if mat[j][i] < 0 and mat[j][i] > -0.00005:
-                str += "0.0000";
-            else:
-                x = "{0:.4f}".format(mat[j][i])
-                str += x
-            if j != len(mat) - 1:
-                str += ","
-        print(str)
 
 
 if __name__ == '__main__':

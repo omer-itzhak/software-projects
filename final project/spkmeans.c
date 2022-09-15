@@ -10,6 +10,7 @@
 
 /* declerations */
 double** make_mat(int n, int m);
+int comparator(const void *num1, const void *num2);
 double euclidean_dist(double *v1, double *v2, int n);
 double ** weighted_adjecency_matrix(int n, double **data_points, int vec_size);
 double* diagonal_degree_matrix(double **weighted_mat, int n);
@@ -22,33 +23,30 @@ double** make_P(int i, int j, double c, double s, int n);
 int* pivot(double **sym_mat, int n);
 double* obtain_c_t(double **sym_mat, int i, int j);
 double square_off(double **mat, int n);
-double*** jacobi_algorithm(double **sym, int n);
-void* invalid_input();
-/* int* read_data_points(FILE* file, double** data_points);
-int read_sym_mat(FILE* file, double** sym_mat); */
-double*** read_file(FILE *file);
-void print_mat_rows(double **mat, int n, int m);
-void print_mat_cols(double **mat, int n, int m);
-void print_vec_row(double *vec, int n);
-double** k_mean(int k, double **data_points, double **centroids, int vec_num,
-                int vec_size);                       
-void avg(double **cluster, int n, double *centroid, int vec_size);
+void copy_vec(double *copy_to, double *copy_from, int n);
 void copy_mat(double** copy_to, double **copy_from, int n);
+double*** jacobi_algorithm(double **sym, int n);
 int eigengap_heuristic(double *eigenvalues, int n);
+int invalid_input();
+double*** read_file(FILE* file);
+void print_vec_row(double *vec, int n);
+void print_mat_rows(double **mat, int n, int m);
+void k_mean(int k, double **data_points, double **centroids, int vec_num, int vec_size);
+void avg(double **cluster, int n, double *centroid, int vec_size);
 double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_size);
-int comparator(const void *num1, const void *num2);
+int main(int argc, char *argv[]);
+int Error();
 /*  */
 
-/* works fine! */
 double** make_mat(int n, int m)
 {
     int i = 0;
     double **mat = (double **)malloc(n * sizeof(double*));
-    assert(mat && "An Error Has Accured");
+    if(mat == NULL) Error();
     for (; i < n; i++)
     {
         mat[i] = (double *)calloc(m , sizeof(double));
-        assert(mat[i] && "An Error Has Accured");
+        if(mat[i] == NULL) Error();
     }
     return mat;
 }
@@ -84,7 +82,6 @@ double euclidean_dist(double *v1, double *v2, int n)
 }
 
 
-
 double ** weighted_adjecency_matrix(int n, double **data_points, int vec_size)
 {
     int i = 0, j;
@@ -114,7 +111,7 @@ double* diagonal_degree_matrix(double **weighted_mat, int n)
 {
     int i = 0, z;
     double *ddm = (double *)calloc(n , sizeof(double));
-    assert(ddm && "An Error Has Accured");
+    if(ddm == NULL) Error();
     for (; i < n; i++)
     {
         for (z = 0; z < n; z++)
@@ -125,7 +122,7 @@ double* diagonal_degree_matrix(double **weighted_mat, int n)
     return ddm;
 }
 
-/* works fine! */
+
 double** matrix_multiplication(double **A, double **B, int size_A, int size_mid, int size_B)
 {
     int row_a = 0, col_b, i;
@@ -154,28 +151,8 @@ double** normalized_graph_laplacian(double *diagonal_mat, double **weighted_mat,
     {
         d[i][i] = pow(diagonal_mat[i], -0.5);
     }
-/*     for(; i < n; i++)
-    {
-        for(j = 0; j < n; j++)
-        {
-            if (i == j)
-            {
-                d[i][j] = pow(diagonal_mat[i], -0.5);
-            }
-            else
-            {
-                d[i][j] = 0;
-            }
-        }   
-    } */
-/*     printf("d:\n");
-    print_mat_rows(d, n, n); */
     dw = matrix_multiplication(d, weighted_mat, n, n, n);
-/*     printf("\ndw:\n");
-    print_mat_rows(dw, n, n); */
     dwd = matrix_multiplication(dw, d, n, n, n);
-/*     printf("\ndwd:\n");
-    print_mat_rows(dwd, n, n); */
     matrix_sub(l_norm, dwd, n);
     for(i = 0; i < n; i++)
     {
@@ -203,13 +180,13 @@ void matrix_sub(double **A, double **B, int n)
     }
 }
 
-/* works fine! */
+
 int is_diagonal(double **A, double **B, int n, double epsilon)
 {
     return fabs(square_off(A, n) - square_off(B, n)) <= epsilon;
 }
 
-/* works fine! */
+
 double** eye(int n)
 {
     int i = 0;
@@ -221,7 +198,7 @@ double** eye(int n)
     return mat;
 }
 
-/* same as Aviv */
+
 double** make_P(int i, int j, double c, double s, int n)
 {
     double **P = eye(n);
@@ -276,7 +253,7 @@ double* obtain_c_t(double **sym_mat, int i, int j)
     return res;
 }
 
-/* probably works fine */
+
 double square_off(double **mat, int n)
 {
     int i = 0, j;
@@ -295,7 +272,6 @@ double square_off(double **mat, int n)
 }
 
 
-
 void copy_vec(double *copy_to, double *copy_from, int n)
 {
     int i = 0;
@@ -304,6 +280,7 @@ void copy_vec(double *copy_to, double *copy_from, int n)
         copy_to[i] = copy_from[i];
     }
 }
+
 
 void copy_mat(double** copy_to, double **copy_from, int n)
 {   
@@ -315,11 +292,8 @@ void copy_mat(double** copy_to, double **copy_from, int n)
 }
 
 
-
-
 /* with relation to the assignment A' will be referred to as B 
-res = [eigenvalues, eigenvectors]
-*/
+res = [eigenvalues, eigenvectors]*/
 double*** jacobi_algorithm(double **sym, int n)
 {
     int i, j, iter = 0, r, idx, convergance;
@@ -331,7 +305,7 @@ double*** jacobi_algorithm(double **sym, int n)
     double ***res;
     double epsilon = 1.0 *pow(10, -5);
     res = (double ***)malloc(2 * sizeof(double**));
-    assert(res && "An Error Has Accured");
+    if(res == NULL) Error();
     eigenvalues = make_mat(1, n);
     product = eye(n);
     A = sym;
@@ -377,6 +351,8 @@ double*** jacobi_algorithm(double **sym, int n)
         for(idx = 0; idx < n; idx++)
         {
             free(P[idx]);
+            free(product[idx]);
+
         }
         free(P);
         free(product);
@@ -393,13 +369,12 @@ double*** jacobi_algorithm(double **sym, int n)
     }
     free(B);
     eigenvectors = (double **)calloc(n , sizeof(double *));
-    assert(eigenvectors && "An Error Has Accured");
+    if(eigenvectors == NULL) Error();
     for (idx = 0; idx < n; idx++)
     {
         eigenvalues[0][idx] = A[idx][idx];
         eigenvectors[idx] = product[idx];
     }
-    free(A);
     free(product);
     res[0] = eigenvalues;
     res[1] = eigenvectors;
@@ -407,13 +382,13 @@ double*** jacobi_algorithm(double **sym, int n)
 
 }
 
-/* the assignment says to go up to n/2 nםt sure i understood correctly */
+
 int eigengap_heuristic(double *eigenvalues, int n)
 {
-    int i, k;
+    int i, k = 0;
     double max_arg, deltha;
     double *copy = (double*)malloc(n * sizeof(double));
-    assert(copy && "An Error Has Accured");
+    if(copy == NULL) Error();
     copy_vec(copy, eigenvalues, n);
     max_arg = -1;
     qsort(copy, n, sizeof(double), comparator);
@@ -430,7 +405,8 @@ int eigengap_heuristic(double *eigenvalues, int n)
     return k + 1;
 }
 
-void* invalid_input()
+
+int invalid_input()
 {
     printf("Invalid Input!");
     exit(1);
@@ -438,53 +414,42 @@ void* invalid_input()
 
 
 /* res = [matrix, vec_size, vec_num] */
-
 double*** read_file(FILE* file)
 {
     char a;
     double num;
-    int i = 0, vec_size_int = 0, vec_num_int = 0;
-    double *vec;
+    int i = 0, vec_size_int = 1, vec_num_int = 0, c = 1, j;
     double **vec_size, **vec_num, **matrix;
     double ***res = (double***)malloc(3 * sizeof(double**));
-    matrix = (double**)malloc(1000 * sizeof(double*));
-    assert(matrix && "An Error Has Accured");
-    vec = (double*)malloc(10 * sizeof(double));
-    assert(vec && "An Error Has Accured");
+    if(res == NULL) Error();
     vec_size = make_mat(1,1);
     vec_num = make_mat(1,1);
-    while(fscanf(file, "%lf", &num) == 1)
+    /* finding vec size */
+    a = fgetc(file);
+    while(a != '\n')
     {
+        if(a == ',') vec_size_int++;
         a = fgetc(file);
-        if(vec_num_int > 0)
-        {
-            if(i == 0)
-            {
-                matrix[vec_num_int] = (double*)malloc(vec_size_int * sizeof(double));
-            }
-            matrix[vec_num_int][i++] = num;
-            if(a == '\n')
-            { 
-                i = 0;
-                vec_num_int++;
-            }
-        }
-        /*this part is only for the first vector*/
-        else
-        {                
-            vec[vec_size_int] = num;
-            vec_size_int++;
-            if(a != ',')
-            {
-                vec = (double*)realloc(vec, vec_size_int * sizeof(double));
-                matrix[0] = vec;
-                vec_num_int = 1;
-            }
-        }
-        
     }
-    fclose(file);
-    matrix = (double**)realloc(matrix, vec_num_int * sizeof(double*));
+    /* finding vec num */
+    while(a != EOF)
+    {
+        if(a == '\n') vec_num_int++;
+        a = fgetc(file);
+    }
+    fseek(file, 0, 0);
+    matrix = make_mat(vec_num_int, vec_size_int);
+    for(; i < vec_num_int; i++)
+    {
+        for(j = 0; j < vec_size_int; j++)
+        {
+            fscanf(file, "%lf", &num);
+            a = fgetc(file);
+            matrix[i][j] = num;
+        }
+    }
+    c = fclose(file);
+    if(c != 0) Error();
     vec_size[0][0] = vec_size_int * 1.0;
     vec_num[0][0] = vec_num_int * 1.0;
     res[0] = matrix;
@@ -494,26 +459,14 @@ double*** read_file(FILE* file)
 }
 
 
-
 void print_vec_row(double *vec, int n)
 {
     int i = 0;
-    for(; i < n; i++)
+    for(; i < n - 1; i++)
     {
-        if (vec[i] < 0 && vec[i] > -0.00005)
-        {
-            printf("0.0000");
-        }
-        else
-        {
-            printf("%.4lf", vec[i]);
-        }
-        if(i != n - 1)
-        {
-            printf(",");
-        }
+        printf("%.4f,", vec[i]);
     }
-    printf("\n");
+    printf("%.4f\n", vec[i]);
 }
 
 
@@ -527,33 +480,7 @@ void print_mat_rows(double **mat, int n, int m)
 }
 
 
-void print_mat_cols(double **mat, int n, int m)
-{
-    int i = 0, j;
-    for(; i < n; i++)
-    {
-        for(j = 0; j < m; j++)
-        {
-            if (mat[i][j] < 0 && mat[i][j] > -0.00005)
-            {
-                printf("0.0000");
-            }
-            else
-            {
-                printf("%.4lf", mat[j][i]);
-            }
-            if(j != m - 1)
-            {
-                printf(",");
-            }
-        }
-        printf("\n");
-    }
-}
-
-
-double** k_mean(int k, double **data_points, double **centroids, int vec_num,
-                int vec_size)
+void k_mean(int k, double **data_points, double **centroids, int vec_num, int vec_size)
 {
     int i, iteration=0, cluster_i = 0, idx, g, more_than_epsilon = 1;
     double min_euclidist, euclidist, norm, dist;
@@ -562,21 +489,21 @@ double** k_mean(int k, double **data_points, double **centroids, int vec_num,
     double ***clusters;
     int *clusters_sizes;
     new_centroids = make_mat(k , vec_size);
-    assert(new_centroids && "An Error Has Accured");
+    if(new_centroids == NULL) Error();
     clusters = (double ***)malloc(k * sizeof(double**));
-    assert(clusters && "An Error Has Accured");
+    if(clusters == NULL) Error();
     clusters_sizes = (int *)calloc(k, sizeof(int));
-    assert(clusters_sizes && "An Error Has Accured");
+    if(clusters_sizes == NULL) Error();
     zero = (double*)calloc(vec_size, sizeof(double));
-    assert(zero && "An Error Has Accured");
+    if(zero == NULL) Error();
     for (i = 0 ; i < k ; i++)
     {
         clusters[i] = (double **)malloc((vec_num - k + 1) * sizeof(double *)); 
         /*largest cluster size can be num of data points - (k-1)*/
-        assert(clusters[i] && "An Error Has Accured");
+        if(clusters[i] == NULL) Error();
     }
     change_vector = (double *)malloc(k * sizeof(double));
-    assert(change_vector && "An Error Has Accured");
+    if(change_vector == NULL) Error();
     while (more_than_epsilon && iteration < 300)
     {
         iteration++;
@@ -623,17 +550,19 @@ double** k_mean(int k, double **data_points, double **centroids, int vec_num,
         temp_centroids = centroids;
         centroids = new_centroids;
         new_centroids = temp_centroids;
+
     }
-    
+    print_mat_rows(new_centroids,k,k);
     free(change_vector);
     for (i = 0 ; i < k ; i++)
     {
         free(clusters[i]);
+        free(new_centroids[i]);
     }
     free(centroids);
     free(clusters);
     free(clusters_sizes);
-    return new_centroids;
+    free(new_centroids);
 }
 
 
@@ -652,6 +581,7 @@ void avg(double **cluster, int n, double *centroid, int vec_size)
     }
 }
 
+
 /* goals:
         1 = spk -> res = T
         2 = wam -> res= weighted_mat
@@ -668,8 +598,6 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
     double **eigenvectors, **weighted_mat,
             **full_ddm, **laplace, **U, **T, **res;
     double ***jacobi;
-    /* res = (double **)malloc(2 * sizeof(double *));
-    assert(res && "An Error Has Accured\n"); */
     if(goal == 5)
     /* goal is jacobi */
     {
@@ -677,14 +605,14 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
         res = make_mat(vec_num + 1, vec_num);
         copy_vec(res[0], jacobi[0][0], vec_num);
         copy_mat(&res[1], jacobi[1], vec_num);
-/*         free(jacobi[0][0]);
+        free(jacobi[0][0]);
         free(jacobi[0]);
         for(i = 0; i < vec_num; i++)
         {
             free(jacobi[1][i]);
         }
         free(jacobi[1]);
-        free(jacobi); */
+        free(jacobi);
     }
     else
     {
@@ -707,12 +635,14 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
                 {
                     full_ddm[i][i] = ddm[i];
                 }
+                free(ddm);
                 res = full_ddm;
             }
             else 
             /* goal is lnorm or spk */
             {
                 laplace = normalized_graph_laplacian(ddm, weighted_mat, vec_num);
+                free(ddm);
                 if(goal == 4)
                 /* goal is lnorm */
                 {
@@ -725,20 +655,17 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
                     jacobi = jacobi_algorithm(laplace, vec_num);
                     eigenvalues = jacobi[0][0];
                     eigenvectors = jacobi[1];
-
-                    /*works untill here depanding on the fact that jacobi,lnorm,ddg,wam is currect*/
-
                     /* determining k */
                     if(k == 0)
                     {
                         k = eigengap_heuristic(eigenvalues, vec_num);
                     }
                     U = make_mat(vec_num, k);
-                    /* finding the largest k eigenvalues */
+                    /* finding the largest k eigenvalues*/
                     for(i = 0; i < k; i++)
                     {
                         max_val = - DBL_MAX;
-                        max_idx = -1;
+                        max_idx = 0;
                         for(j = 0; j < vec_num; j++)
                         {
                             if(eigenvalues[j] > max_val)
@@ -750,7 +677,7 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
                         /* making U in transpose */
                         for(j = 0; j < vec_num; j++)
                         {
-                            U[j][i] = eigenvectors[j][i];
+                            U[j][i] = eigenvectors[j][max_idx];
                         }                        
                         eigenvalues[max_idx] = - DBL_MAX;
                     }
@@ -770,45 +697,41 @@ double** main_by_goal(int k, int goal, double **matrix, int vec_num, int vec_siz
                             if(pow_sum > 0)
                             {
                                 T[i][j] = U[i - 1][j] / pow_sum;
-                            } 
-                            else T[i][j] = 0.0;           
+                            }
+                            else
+                            {
+                                T[i][j] = 0.0;          
+                            }
                         }
                     }
                     res = T;
-                    /* fails to free */
-/*                     for(i = 0; i < vec_num; i++)
+                    for(i = 0; i < vec_num; i++)
                     {
                         free(U[i]);
                         free(eigenvectors[i]);
-                        free(laplace[i]); 
-                        free(weighted_mat[i]);
-                    } */
+                    } 
                     free(U);
                     free(eigenvalues);
                     free(eigenvectors);
-                    /* free(laplace); */ /* fails to free */
-                    free(weighted_mat);
+                    
                 }
             }
-            /* ddm is a vector */
-            free(ddm);
+            for (i = 0; i < vec_num; i++)
+            {
+                free(weighted_mat[i]);
+            }
+            free(weighted_mat);
         }
     }   
-    /* fails to free */
-/*
-    for(i = 0; i < vec_num; i++)
-    {
-        free(matrix[i]);
-    }
-    free(matrix); */
     return res;
 }
+
 
 /* reading input from CMD */
 int main(int argc, char *argv[])
 {
     int vec_size = 0, vec_num, i;
-    char *goal;
+    char *goal, *filename;
     FILE *file;
     /* matrix is what we read of the file : data points / sym mat */
     double *eigenvalues;
@@ -818,11 +741,9 @@ int main(int argc, char *argv[])
     {
         invalid_input();
     }
-    file = fopen(argv[2], "r");
-    if(file == NULL)
-    {
-        invalid_input();
-    }
+    filename = argv[2];
+    file = fopen(filename, "r");
+    if(file == NULL) invalid_input();
     goal = argv[1];
     if(strcmp(goal, "wam") == 0)
     {
@@ -903,22 +824,27 @@ int main(int argc, char *argv[])
         eigenvectors = &jacobi[1];
         print_vec_row(eigenvalues,vec_num);
         print_mat_rows(eigenvectors, vec_num, vec_num);
-        /* problem here: */
-/*         for(i = 0; i < vec_num; i++)
+        for(i = 0; i < vec_num; i++)
         {
             free(jacobi[i]);
             free(matrix[i]);
         }
-        free(matrix); */
+        free(jacobi[vec_num]);
+        free(matrix);
         free(jacobi);
         free(data);
-        
     }
     else 
     {
-        printf("error - skip");
         invalid_input();
     }
     return 0;
 }
+
+int Error()
+{
+    printf("an Error Has Accured\n");
+    exit(1);
+}
+
 #endif
